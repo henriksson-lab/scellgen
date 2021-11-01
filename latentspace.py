@@ -19,8 +19,17 @@ class DVAElatentspace():
         self.n_dim_in = n_dim_in
         self.n_dim_out = n_dim_out
 
-    def foo():
+
+    """
+    Takes n-dim input and returns a n-dim output which holds the random sampling
+    
+    """
+    def reparameterize(self
+        # todo more stuff
+   ):
         pass
+
+
 
 
 
@@ -35,6 +44,22 @@ class DVAElatentspacePeriodic(DVAElatentspace):
         n_dim: int = 1
     ):
         super(DVAElatentspace, self).__init__(n_dim*2, n_dim*2)
+
+
+
+
+class DVAElatentspaceLinear(DVAElatentspace):
+    """
+    A linear latent space, N^n - the regular kind
+    """
+
+    def __init__(
+        self,
+        n_dim: int = 1
+    ):
+        super(DVAElatentspace, self).__init__(n_dim*2, n_dim*2)
+
+
 
 
 
