@@ -1,5 +1,6 @@
 from anndata import AnnData
 
+from typing import List, Optional
 
 
 class DVAEdatadeclaration():
@@ -19,16 +20,37 @@ class DVAEdatadeclaration():
 
 
 
-class DVAEdatadeclarationRNAseq(DVAEdatadeclaration):
+class DVAEdatadeclarationAnndata(DVAEdatadeclaration):
     """
 
-    Class that sets up everything needed to model RNAseq data the usual way.
-    equivalent to the SCVI model
+    Class that sets up everything needed to model data the usual way.
+    equivalent to the SCVI model but later we can extend it
 
     """
 
 
     def __init__(self,
-                 adata: AnnData
-                 ):
+         adata: AnnData,
+         genes: List[str] = [],
+         peaks: List[str] = [],
+                 # todo isoform-gene mapping
+         batch_variables: List[str] = []
+     ):
         666
+
+        # todo how do we compose the data loaders the best way that fits more complex scenarios?
+
+
+        # todo calculate priors for the l-space? mean and variance. store where for later?
+        if len(genes)!=0:
+            666
+            # todo create gene l-space
+        if len(peaks)!=0:
+            666
+
+
+
+
+
+
+

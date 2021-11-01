@@ -32,3 +32,7 @@ class DVAEpredictionZINB(DVAEpredictionError):
             # todo how do we forward the fitted distribution to this funcion?
     ):
         pass
+
+
+
+# todo might need a logistic regression class, if we want to be able to predict labels

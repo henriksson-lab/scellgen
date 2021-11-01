@@ -24,6 +24,12 @@ class DVAEdecoder():
     ):
         pass
 
+    """
+    This loss is primarily from priors on the weights
+    """
+    def get_loss(self):
+        pass
+
 
 class DVAEdecoderFC(DVAEdecoder):
     """
@@ -48,7 +54,13 @@ class DVAEdecoderFC(DVAEdecoder):
             self
             # todo more stuff
     ):
-# todo
+        # todo
+
+    """
+    This loss is primarily from priors on the weights
+    """
+    def get_loss(self):
+        pass
 
 
 # todo network based on some meaningful biology

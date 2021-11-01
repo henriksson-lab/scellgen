@@ -29,6 +29,11 @@ class DVAElatentspace():
    ):
         pass
 
+    """
+    Calculate the loss - KL distance
+    """
+    def get_loss(self):
+        pass
 
 
 
@@ -45,6 +50,11 @@ class DVAElatentspacePeriodic(DVAElatentspace):
     ):
         super(DVAElatentspace, self).__init__(n_dim*2, n_dim*2)
 
+    """
+    Calculate the loss - KL distance
+    """
+    def get_loss(self):
+        pass
 
 
 
@@ -60,6 +70,11 @@ class DVAElatentspaceLinear(DVAElatentspace):
         super(DVAElatentspace, self).__init__(n_dim*2, n_dim*2)
 
 
+    """
+    Calculate the loss - KL distance
+    """
+    def get_loss(self):
+        pass
 
 
 
@@ -72,6 +87,7 @@ class DVAElatentspaceSizefactor(DVAElatentspace):
         self
     ):
         # TODO this class likely needs a bit special treatment
+        # but scATAC+RNA might have two of these!
 
 
 
@@ -89,3 +105,11 @@ class DVAElatentspaceConcat(DVAElatentspace):
 
         # TODO sum up the dimensions of the spaces
         super(DVAElatentspace, self).__init__(n_dim*2, n_dim*2)
+
+
+    """
+    Calculate the loss - KL distance
+    """
+    def get_loss(self):
+        # todo sum up losses
+
