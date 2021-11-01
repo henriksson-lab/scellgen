@@ -31,6 +31,11 @@ class DVAEdecoder():
         pass
 
 
+######################################################################################################
+######################################################################################################
+######################################################################################################
+
+
 class DVAEdecoderFC(DVAEdecoder):
     """
     Fully connected neural network decoder.
@@ -64,3 +69,35 @@ class DVAEdecoderFC(DVAEdecoder):
 
 
 # todo network based on some meaningful biology
+
+
+######################################################################################################
+######################################################################################################
+######################################################################################################
+
+class DVAEdecoderRnaseq(DVAEdecoder):
+    """
+    The SCVI decoder
+    """
+
+
+    def __init__(
+            self,
+            n_input: int,
+            n_output: int
+    ):
+        666
+        super(DVAEdecoder, n_input, n_output)
+        # todo set up the Linear pytorch layers.
+
+    def forward(
+            self
+            # todo more stuff
+    ):
+        # todo
+
+    """
+    This loss is primarily from priors on the weights
+    """
+    def get_loss(self):
+        pass
