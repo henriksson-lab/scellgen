@@ -1,2 +1,2 @@
 # dvae
-Directional variational encoder
+Directional variational auto-encoder
