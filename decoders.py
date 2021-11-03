@@ -1,9 +1,9 @@
-
 from typing import List, Optional
 
+import abc
 
 
-class DVAEdecoder():
+class DVAEdecoder(metaclass=abc.ABCMeta):
     """
     Takes data and crunches it down to latent space input.
 
@@ -11,13 +11,17 @@ class DVAEdecoder():
     """
 
     def __init__(
-        self,
-        n_input,
-        n_output
+            self,
+            n_input,
+            n_output
     ):
         self.n_input = n_input
         self.n_output = n_output
 
+    """
+    Generate samples given the latent space coordinates
+    """
+    @abc.abstractmethod
     def forward(
             self
             # todo more stuff
@@ -27,6 +31,8 @@ class DVAEdecoder():
     """
     This loss is primarily from priors on the weights
     """
+
+    @abc.abstractmethod
     def get_loss(self):
         pass
 
@@ -42,14 +48,12 @@ class DVAEdecoderFC(DVAEdecoder):
     Will likely never be used except for testing stuff
     """
 
-
     def __init__(
             self,
             n_input: int,
             n_output: int,
             n_hidden: List[int]
     ):
-        666
         super(DVAEdecoder, n_input, n_output)
         # todo set up the Linear pytorch layers.
 
@@ -59,11 +63,13 @@ class DVAEdecoderFC(DVAEdecoder):
             self
             # todo more stuff
     ):
-        # todo
+
+    # todo
 
     """
     This loss is primarily from priors on the weights
     """
+
     def get_loss(self):
         pass
 
@@ -80,7 +86,6 @@ class DVAEdecoderRnaseq(DVAEdecoder):
     The SCVI decoder
     """
 
-
     def __init__(
             self,
             n_input: int,
@@ -94,10 +99,12 @@ class DVAEdecoderRnaseq(DVAEdecoder):
             self
             # todo more stuff
     ):
-        # todo
+
+    # todo
 
     """
     This loss is primarily from priors on the weights
     """
+
     def get_loss(self):
         pass

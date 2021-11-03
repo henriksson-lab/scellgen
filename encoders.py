@@ -1,9 +1,9 @@
 from typing import List, Optional
 
+import abc
 
 
-
-class DVAEencoder():
+class DVAEencoder(metaclass=abc.ABCMeta):
     """
     Takes data and crunches it down to latent space input.
 
@@ -18,6 +18,7 @@ class DVAEencoder():
         self.n_input = n_input
         self.n_output = n_output
 
+    @abc.abstractmethod
     def forward(
             self
             #todo more stuff
@@ -27,6 +28,7 @@ class DVAEencoder():
     """
     This loss is primarily from priors on the weights
     """
+    @abc.abstractmethod
     def get_loss(self):
         pass
 
