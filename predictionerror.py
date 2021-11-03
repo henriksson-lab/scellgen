@@ -4,6 +4,9 @@ from typing import List, Optional
 import decoders
 import abc
 
+import torch.nn as nn
+from torch.distributions import VonMises
+
 
 from anndata import AnnData
 from scvi.distributions import NegativeBinomial, ZeroInflatedNegativeBinomial
@@ -15,12 +18,15 @@ class DVAEpredictionError(metaclass=abc.ABCMeta):
     This is an abstract class meant to be inherited
     """
 
+
+    def __init__(self, input_x, output_x, input_dim):
+        self.input_x = input_x
+        self.output_x = output_x
+        self.input_dim = input_dim
     @abc.abstractmethod
-    def get_loss(
-            self
-            # todo more stuff
-    ):
-        pass
+    def get_loss(self):
+        reconstruction_loss = nn.CrossEntropyLoss(reduction='none')(self.output_x, self.input_x.reshape(-1, self.input_dim)).sum(-1).mean() 
+        return reconstructiion_loss
 
 ######################################################################################################
 ######################################################################################################
@@ -52,6 +58,9 @@ class DVAEpredictionZINB(DVAEpredictionError):
         px_rate = generative_outputs["px_rate"]
         px_r = generative_outputs["px_r"]
         px_dropout = generative_outputs["px_dropout"]
+    
+        loc = generative_outputs["loc"]
+        concentration = generative_outputs["concentration"]
 
         if self.gene_likelihood == "zinb":
             loss = (
@@ -67,6 +76,8 @@ class DVAEpredictionZINB(DVAEpredictionError):
             )
         elif self.gene_likelihood == "poisson":
             reconst_loss = -Poisson(px_rate).log_prob(x).sum(dim=-1)
+        elif self.gene_likelihood == "vmf":
+            reconst_loss = -VonMises(loc, concentration).log_prob(x).sum(dim=-1)
         return loss
 
 
