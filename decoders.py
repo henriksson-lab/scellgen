@@ -54,7 +54,7 @@ class DVAEdecoderFC(DVAEdecoder):
             n_output: int,
             n_hidden: List[int]
     ):
-        super(DVAEdecoder, n_input, n_output)
+        super().__init__(n_input, n_output)
         # todo set up the Linear pytorch layers.
 
         # todo consider making a class like FClayer, but simpler. or reuse internally.
@@ -91,8 +91,7 @@ class DVAEdecoderRnaseq(DVAEdecoder):
             n_input: int,
             n_output: int
     ):
-        666
-        super(DVAEdecoder, n_input, n_output)
+        super().__init__(n_input, n_output)
         # todo set up the Linear pytorch layers.
 
     def forward(

@@ -6,17 +6,16 @@ import abc
 import latentspace
 
 
-class DVAEdatadeclaration(metaclass=abc.ABCMeta):
+######################################################################################################
+######################################################################################################
+######################################################################################################
+
+
+
+class DVAEmodel(metaclass=abc.ABCMeta):
     """
-    This class is responsible for organizing what we want to do with the adata. What comes in and out?
-
-
-    Container for all other classes?
-
-    Can have specialized classes that sets up the standard stuff
-
+    This class contains everything else.
     Technically, this class might not even need to operate over adatas... :o but maybe too general
-
     """
 
 
@@ -25,12 +24,10 @@ class DVAEdatadeclaration(metaclass=abc.ABCMeta):
 ######################################################################################################
 
 
-class DVAEdatadeclarationAnndata(DVAEdatadeclaration):
+class DVAEmodelAnndata(DVAEmodel):
     """
-
     Class that sets up everything needed to model data the usual way.
     equivalent to the SCVI model but later we can extend it
-
     """
 
     def __init__(
@@ -39,14 +36,20 @@ class DVAEdatadeclarationAnndata(DVAEdatadeclaration):
             latentspace: latentspace.DVAElatentspace
     ):
         self.adata = adata
+        self.latentspace = latentspace
 
         # todo how do we compose the data loaders the best way that fits more complex scenarios?
+
+
 
     def add_genes(
             self,
             input_genes: List[str] = [],
             output_genes: List[str] = None
     ):
+        """
+        Add genes to predict, with suitable error function
+        """
         if output_genes is None:
             output_genes = input_genes
 
@@ -59,15 +62,13 @@ class DVAEdatadeclarationAnndata(DVAEdatadeclaration):
             self,
             batch_variables: List[str]
     ):
-
-        666
+        """
+        Add covariates to use for prediction. These do not contribute to the error function
+        """
+        pass
         # todo
 
-    # todo isoform-gene mapping
 
-    """
-    Add isoforms to predict, with suitable error function
-    """
 
     def add_isoforms(
             self,
@@ -75,7 +76,10 @@ class DVAEdatadeclarationAnndata(DVAEdatadeclaration):
             input_genes: List[str] = [],
             output_genes: List[str] = None,
     ):
+        """
+        Add isoforms to predict, with suitable error function
+        """
         if output_genes is None:
             output_genes = input_genes
 
-        # todo
+        # todo isoform-gene mapping

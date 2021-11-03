@@ -2,6 +2,9 @@ from typing import List, Optional
 
 import abc
 
+######################################################################################################
+######################################################################################################
+######################################################################################################
 
 class DVAElatentspace(metaclass=abc.ABCMeta):
     """
@@ -18,15 +21,14 @@ class DVAElatentspace(metaclass=abc.ABCMeta):
         self.n_dim_in = n_dim_in
         self.n_dim_out = n_dim_out
 
-    """
-    Takes n-dim input and returns a n-dim output which holds the random sampling
-    
-    """
 
     @abc.abstractmethod
     def reparameterize(self
                        # todo more stuff
                        ):
+        """
+        Takes n-dim input and returns a n-dim output which holds the random sampling
+        """
         pass
 
     """
@@ -105,9 +107,10 @@ class DVAElatentspaceSizefactor(DVAElatentspace):
 
     """
 
-    def __init__(
-            self
-    ):
+    def __init__(self, n_dim_in: int, n_dim_out: int):
+        super().__init__(n_dim_in, n_dim_out)
+
+
 # TODO this class likely needs a bit special treatment
 # but scATAC+RNA might have two of these!
 

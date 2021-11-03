@@ -1,4 +1,4 @@
-import datadecl
+import model
 import abc
 
 
@@ -12,7 +12,7 @@ class DVAEtraining(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def train(
             self,
-            model: datadecl.DVAEdatadeclaration
+            model: model.DVAEdatadeclaration
     ):
         pass
 
@@ -35,7 +35,7 @@ class DVAEtrainingNormal(DVAEtraining):
 
     def train(
             self,
-            model: datadecl.DVAEdatadeclaration
+            model: model.DVAEdatadeclaration
     ):
         666
         # todo
@@ -64,7 +64,7 @@ class DVAEtrainingOptimizeHyperparameters(DVAEtraining):
 
     def train(
             self,
-            model: datadecl.DVAEdatadeclaration
+            model: model.DVAEdatadeclaration
     ):
         # do grid optimization for the hyperparameters
         self.training.train(model)
