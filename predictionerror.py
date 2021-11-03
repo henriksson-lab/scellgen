@@ -5,6 +5,8 @@ import decoders
 import abc
 
 import torch.nn as nn
+from torch.distributions import VonMises
+
 
 from anndata import AnnData
 from scvi.distributions import NegativeBinomial, ZeroInflatedNegativeBinomial
@@ -56,6 +58,9 @@ class DVAEpredictionZINB(DVAEpredictionError):
         px_rate = generative_outputs["px_rate"]
         px_r = generative_outputs["px_r"]
         px_dropout = generative_outputs["px_dropout"]
+    
+        loc = generative_outputs["loc"]
+        concentration = generative_outputs["concentration"]
 
         if self.gene_likelihood == "zinb":
             loss = (
@@ -71,6 +76,8 @@ class DVAEpredictionZINB(DVAEpredictionError):
             )
         elif self.gene_likelihood == "poisson":
             reconst_loss = -Poisson(px_rate).log_prob(x).sum(dim=-1)
+        elif self.gene_likelihood == "vmf":
+            reconst_loss = -VonMises(loc, concentration).log_prob(x).sum(dim=-1)
         return loss
 
 
