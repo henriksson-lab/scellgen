@@ -1,4 +1,5 @@
-from typing import List, Optional
+import collections
+from typing import Callable, Iterable, List, Optional
 
 import abc
 import torch
@@ -31,10 +32,10 @@ class DVAEencoder(metaclass=abc.ABCMeta):
     """
 
 
-    def __init__(self, n_input, n_hidden, n_output, activation=F.relu, distribution='normal'):    
+    def __init__(self, n_input, n_hidden, n_output, activation=F.relu, distribution='normal'):
 
         super().__init__()
-    
+
         self.n_input = n_input
         self.n_hidden=n_hidden
         self.n_output = n_output
@@ -242,6 +243,10 @@ class FCLayersSCVI(nn.Module):
         else:
             self.n_cat_list = []
 
+
+        cat_dim = sum(self.n_cat_list)
+
+
         # Construct each layer
         total_layers = collections.OrderedDict()
         self.linear_layers = []
@@ -271,9 +276,12 @@ class FCLayersSCVI(nn.Module):
             #todo store this layer for later forward().
 
             # Add this layer to the big list
-            total_layers.update("Layer {}".format(i), norm_onelayer)
+            layer_name = "Layer " +  str(i)
+            print(layer_name)
+            import pdb; pdb.set_trace()
+            total_layers[layer_name] =  norm_onelayer
 
-        cat_dim = sum(self.n_cat_list)
+
         self.fc_layers = nn.Sequential(total_layers)   #todo cannot use this function
 
     def get_weights(self) -> List[torch.Tensor]:
