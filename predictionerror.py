@@ -18,14 +18,24 @@ class DVAEpredictionError(metaclass=abc.ABCMeta):
     This is an abstract class meant to be inherited
     """
 
+    @abc.abstractmethod
+    def get_loss(self):
+        pass
+
+######################################################################################################
+######################################################################################################
+######################################################################################################
+
+
+class DVAEpredictionErrorCE(DVAEpredictionError):
 
     def __init__(self, input_x, output_x, input_dim):
         self.input_x = input_x
         self.output_x = output_x
         self.input_dim = input_dim
-    @abc.abstractmethod
+
     def get_loss(self):
-        reconstruction_loss = nn.CrossEntropyLoss(reduction='none')(self.output_x, self.input_x.reshape(-1, self.input_dim)).sum(-1).mean() 
+        reconstruction_loss = nn.CrossEntropyLoss(reduction='none')(self.output_x, self.input_x.reshape(-1, self.input_dim)).sum(-1).mean()
         return reconstructiion_loss
 
 ######################################################################################################
@@ -33,7 +43,7 @@ class DVAEpredictionError(metaclass=abc.ABCMeta):
 ######################################################################################################
 
 
-class DVAEpredictionZINB(DVAEpredictionError):
+class DVAEpredictionErrorZINB(DVAEpredictionError):
     """
     Returns loss based on a fitted ZINB distribution
     """

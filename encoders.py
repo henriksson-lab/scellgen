@@ -195,8 +195,7 @@ class FCLayersSCVI(nn.Module):
         The dimensionality of the output
     n_cat_list
         A list containing, for each category of interest,
-        the number of categories. E<<<<<<< HEAD
-ach category will be
+        the number of categories. Each category will be
         included using a one-hot encoding.
     n_layers
         The number of fully-connected hidden layers
@@ -269,11 +268,13 @@ ach category will be
                 nn.Dropout(p=dropout_rate) if dropout_rate > 0 else None,
             )
 
+            #todo store this layer for later forward().
+
             # Add this layer to the big list
             total_layers.update("Layer {}".format(i), norm_onelayer)
 
         cat_dim = sum(self.n_cat_list)
-        self.fc_layers = nn.Sequential(total_layers)
+        self.fc_layers = nn.Sequential(total_layers)   #todo cannot use this function
 
     def get_weights(self) -> List[torch.Tensor]:
         """
@@ -287,7 +288,7 @@ ach category will be
 
 
 
-
+    #todo do we really need?
     def inject_into_layer(self, layer_num) -> bool:
         """Helper to determine if covariates should be injected."""
         user_cond = layer_num == 0 or (layer_num > 0 and self.inject_covariates)

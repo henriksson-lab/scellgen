@@ -45,7 +45,11 @@ class DVAEmodelAnndata(DVAEmodel):
     def add_genes(
             self,
             input_genes: List[str] = [],
-            output_genes: List[str] = None
+            output_genes: List[str] = None,
+            latent_space_mapping: List[int]   #todo figure this out
+
+            # todo optional error model
+
     ):
         """
         Add genes to predict, with suitable error function

@@ -121,3 +121,36 @@ de_df = model.differential_isoforms(
     group1="Endothelial",
     group2="Fibroblast"
 )
+
+
+
+# ##################################################################################################################
+# ######## Example: Complex case of overruling standard model ######################################################
+# ##################################################################################################################
+
+
+class DVAEpredictionErrorCustom(DVAEpredictionError):
+    def get_loss(self):
+        reconstruction_loss = nn.CrossEntropyLoss(reduction='none')(self.output_x,
+                                                                    self.input_x.reshape(-1, self.input_dim)).sum(
+            -1).mean()
+        return reconstructiion_loss
+
+
+# Define latent space
+zspace = latentspace.DVAElatentspaceLinear(n_dim=1)
+
+# Define input and output genes
+input_genes = adata.obs.index[adata.obs.is_cc]
+output_genes = adata.obs.index[adata.obs.is_highly_variable]
+
+model = model.DVAEmodelAnndata(
+    adata,
+    zspace)
+
+model.add_genes(input_genes, output_genes, error_model = DVAEpredictionErrorCustom())
+#this should automatically add the right loss function unless other given
+
+
+trainer = training.DVAEtrainingNormal()
+trainer.train(model)
