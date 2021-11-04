@@ -277,8 +277,6 @@ class FCLayersSCVI(nn.Module):
 
             # Add this layer to the big list
             layer_name = "Layer " +  str(i)
-            print(layer_name)
-            import pdb; pdb.set_trace()
             total_layers[layer_name] =  norm_onelayer
 
 
