@@ -221,7 +221,10 @@ class FCLayersSCVI(nn.Module):
         self,
         n_in: int,
         n_out: int,
-        n_cat_list: Iterable[int] = None,
+        #n_cat_list: Iterable[int] = None,
+
+        covariates: covariate.DVAEcovariate,
+
         n_layers: int = 1,
         n_hidden: int = 128,
         dropout_rate: float = 0.1,
@@ -236,11 +239,12 @@ class FCLayersSCVI(nn.Module):
         self.inject_covariates = inject_covariates
         layers_dim = [n_in] + (n_layers - 1) * [n_hidden] + [n_out]
 
-        if n_cat_list is not None:
+        self.n_cat_list = covariates.get_number. ..()
+#        if n_cat_list is not None:
             # n_cat = 1 will be ignored
-            self.n_cat_list = [n_cat if n_cat > 1 else 0 for n_cat in n_cat_list]
-        else:
-            self.n_cat_list = []
+ #           self.n_cat_list = [n_cat if n_cat > 1 else 0 for n_cat in n_cat_list]
+  #      else:
+   #         self.n_cat_list = []
 
         # Construct each layer
         total_layers = collections.OrderedDict()
@@ -273,8 +277,9 @@ class FCLayersSCVI(nn.Module):
             # Add this layer to the big list
             total_layers.update("Layer {}".format(i), norm_onelayer)
 
-        cat_dim = sum(self.n_cat_list)
-        self.fc_layers = nn.Sequential(total_layers)   #todo cannot use this function
+        #cat_dim = sum(self.n_cat_list)
+        #self.fc_layers = nn.Sequential(total_layers)   #todo cannot use this function
+
 
     def get_weights(self) -> List[torch.Tensor]:
         """
@@ -296,7 +301,10 @@ class FCLayersSCVI(nn.Module):
 
 
 
-    def forward(self, x: torch.Tensor, *cat_list: int):
+    def forward(self, x: torch.Tensor,
+                #*cat_list: int
+                covariates_values: torch.Tensor
+                ):
         """
         Forward computation on ``x``.
         Parameters
@@ -311,6 +319,10 @@ class FCLayersSCVI(nn.Module):
         py:class:`torch.Tensor`
             tensor of shape ``(n_out,)``
         """
+
+
+        ########### all of this crap ############
+
         one_hot_cat_list = []  # for generality in this list many indices useless.
 
         if len(self.n_cat_list) > len(cat_list):
@@ -331,7 +343,7 @@ class FCLayersSCVI(nn.Module):
                 if layer is not None:
                     if isinstance(layer, nn.BatchNorm1d):
                         if x.dim() == 3:
-                            x = torch.cat(
+                            x = torch.cat(   #the good function
                                 [(layer(slice_x)).unsqueeze(0) for slice_x in x], dim=0
                             )
                         else:

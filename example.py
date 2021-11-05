@@ -1,7 +1,7 @@
 import scanpy as sc
 from anndata import AnnData
 
-
+import covariate
 import model
 import latentspace
 import training
@@ -30,9 +30,12 @@ zspace = latentspace.DVAElatentspaceLinear(n_dim=1)
 input_genes = adata.obs.index[adata.obs.is_cc]
 output_genes = adata.obs.index[adata.obs.is_highly_variable]
 
+covariates = covariate.DVAEcovariate(adata, list_cat=["batch"])
+
 model = model.DVAEmodelAnndata(
     adata,
-    zspace)
+    zspace,
+    covariates)
 
 model.add_genes(input_genes, output_genes)
 #this should automatically add the right loss function unless other given
