@@ -29,9 +29,9 @@ class DVAEcovariate():
 
     def forward(self)
 
-    for i, category in enumerate(list_cat):
+    for i, category in enumerate(self.list_cat):
 
-        current_tensor = categories_tensor(adata.obs[category].tolist())
+        current_tensor = categories_tensor(self.adata.obs[category].tolist())
 
         if i == 0:
             total_categorical_tensor = current_tensor
