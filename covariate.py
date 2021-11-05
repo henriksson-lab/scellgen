@@ -1,6 +1,7 @@
-import AnnData
+import anndata
 import torch
 from torch.nn.functional import one_hot
+from typing import List
 
 def categories_tensor(values):
     '''
@@ -11,9 +12,9 @@ def categories_tensor(values):
 
     '''
     unique_classes = list(set(values))
-    valuesdict = [key: value for key, value in enumerate(unique_classes)]
-    classvalues = [valuesdict[v] for v in values ]
-    classtensor = one_hot(torch.arange(0,len(unique_classes)), num_classes=len(unique_classes))
+    valuesdict = {key: value for key, value in enumerate(unique_classes)}
+    classvalues = [valuesdict[v] for v in values]
+    classtensor = one_hot(torch.arange(0,len(classvalues)), num_classes=len(unique_classes))
     return classtensor
 
 class DVAEcovariate():
@@ -23,22 +24,32 @@ class DVAEcovariate():
         list_cat: List[str],
         list_cont: List[str]
     ):
-    self.adata = adata
-    self.list_cat = list_cat # list of obs columns to use as discrete covariates
-    self.list_cont = list_cont # list of obs columns to use as continuous covariates
 
-    def forward(self)
+        self.adata = adata
+        self.list_cat = list_cat # list of obs columns to use as discrete covariates
+        self.list_cont = list_cont # list of obs columns to use as continuous covariates
 
-    for i, category in enumerate(self.list_cat):
+    def forward(self):
 
-        current_tensor = categories_tensor(self.adata.obs[category].tolist())
+        for i, category in enumerate(self.list_cat):
 
-        if i == 0:
-            total_categorical_tensor = current_tensor
-        else:
-            total_categorical_tensor = torch.cat(total_categorical_tensor, current_tensor)
+            current_tensor = torch.tensor(self.adata.obs[category].values)
 
-    return total_categorical_tensor
+            if i == 0:
+                total_categorical_tensor = current_tensor
+            else:
+                total_categorical_tensor = torch.cat(total_categorical_tensor, current_tensor)
+
+        for i, category in enumerate(self.list_cont):
+
+            current_tensor = torch.Tensor(np.array(adata.obs[category].values))
+
+            if i == 0:
+                total_cont_tensor = current_tensor
+            else:
+                total_cont_tensor = torch.cat(total_cont_tensor, current_tensor)
+
+        return torch.cat(total_categorical_tensor, total_cont_tensor)
 
 
 
