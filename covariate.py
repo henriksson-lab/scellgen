@@ -1,23 +1,49 @@
+import AnnData
+import torch
+from torch.nn.functional import one_hot
 
+def categories_tensor(values):
+    '''
+
+    changes categorical values (strings) to integer valuesdict
+    required for torch.nn.functional.one_hot
+    which in turn converts it to Tensor form
+
+    '''
+    unique_classes = list(set(values))
+    valuesdict = [key: value for key, value in enumerate(unique_classes)]
+    classvalues = [valuesdict[v] for v in values ]
+    classtensor = one_hot(torch.arange(0,len(unique_classes)), num_classes=len(unique_classes))
+    return classtensor
 
 class DVAEcovariate():
 
-    __init__(
+    def __init__(
         adata,
         list_cat: List[str],
         list_cont: List[str]
-    )
+    ):
+    self.adata = adata
+    self.list_cat = list_cat # list of obs columns to use as discrete covariates
+    self.list_cont = list_cont # list of obs columns to use as continuous covariates
 
+    def forward(self)
 
+    for i, category in enumerate(list_cat):
 
-    adata.obs # make one hot
+        current_tensor = categories_tensor(adata.obs[category].tolist())
 
-    self.onehot= ...  #pandas?
+        if i == 0:
+            total_categorical_tensor = current_tensor
+        else:
+            total_categorical_tensor = torch.cat(total_categorical_tensor, current_tensor)
+
+    return total_categorical_tensor
 
 
 
     def get_num_covariate(self):
-        ...
+        pass
 
 
     def encode_covariate(self, obs_for_the_sample) -> torch.Tensor:
@@ -25,7 +51,7 @@ class DVAEcovariate():
         used once, when creating data loader. NOT in encoder/decoder
         :return:
         """
-        ... #return encoded, for the entire adata
+        pass #return encoded, for the entire adata
 
 
 
