@@ -276,8 +276,7 @@ class FCLayersSCVI(nn.Module):
             #todo store this layer for later forward().
 
             # Add this layer to the big list
-            layer_name = "Layer " +  str(i)
-            total_layers[layer_name] =  norm_onelayer
+            total_layers["Layer " +  str(i)] =  norm_onelayer
 
 
         self.fc_layers = nn.Sequential(total_layers)   #todo cannot use this function
