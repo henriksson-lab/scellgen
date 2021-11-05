@@ -33,7 +33,7 @@ class DVAEcovariate():
 
         for i, category in enumerate(self.list_cat):
 
-            current_tensor = torch.tensor(self.adata.obs[category].values)
+            current_tensor = torch.Tensor(self.adata.obs[category].values)
 
             if i == 0:
                 total_categorical_tensor = current_tensor
