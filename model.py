@@ -3,6 +3,7 @@ from anndata import AnnData
 from typing import List, Optional
 import abc
 
+import covariate
 import latentspace
 
 
@@ -33,7 +34,8 @@ class DVAEmodelAnndata(DVAEmodel):
     def __init__(
             self,
             adata: AnnData,
-            latentspace: latentspace.DVAElatentspace
+            latentspace: latentspace.DVAElatentspace,
+            covariates: covariate.DVAEcovariate = None
     ):
         self.adata = adata
         self.latentspace = latentspace
