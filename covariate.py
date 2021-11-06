@@ -5,7 +5,6 @@ import pandas as pd
 import numpy as np
 import torch
 
-
 class DVAEobsmapper():
 
     def __init__(
