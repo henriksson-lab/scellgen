@@ -5,7 +5,7 @@ import abc
 
 import covariate
 import latentspace
-
+import anndata
 
 ######################################################################################################
 ######################################################################################################
@@ -18,6 +18,10 @@ class DVAEmodel(metaclass=abc.ABCMeta):
     This class contains everything else.
     Technically, this class might not even need to operate over adatas... :o but maybe too general
     """
+
+    def get_latent_representation(self):
+        pass
+
 
 
 ######################################################################################################
@@ -33,7 +37,7 @@ class DVAEmodelAnndata(DVAEmodel):
 
     def __init__(
             self,
-            adata: AnnData,
+            adata: anndata.AnnData,
             latentspace: latentspace.DVAElatentspace,
             covariates: covariate.DVAEcovariate = None
     ):
@@ -64,15 +68,20 @@ class DVAEmodelAnndata(DVAEmodel):
 
 
 
-    def add_batch_variables(
+    def add_covariates(
             self,
-            batch_variables: List[str]
+            list_cat: List[str] = [],
+            list_cont: List[str] = [],
+            obs_variable: str = "obs"
     ):
         """
         Add covariates to use for prediction. These do not contribute to the error function
         """
-        pass
-        # todo
+        self.cov = covariate.DVAEobsmapper(
+            self.adata[obs_variable],
+            list_cat,
+            list_cont
+        )
 
 
 
@@ -89,3 +98,8 @@ class DVAEmodelAnndata(DVAEmodel):
             output_genes = input_genes
 
         # todo isoform-gene mapping
+
+    def get_normalized_expression(
+            self,
+            library_size: float = 10e4):
+        pass

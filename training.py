@@ -2,6 +2,14 @@ import model
 import abc
 
 
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+import torch.utils.data
+import loss
+
+
 class DVAEtraining(metaclass=abc.ABCMeta):
     """
     A strategy for training
@@ -28,18 +36,30 @@ class DVAEtrainingNormal(DVAEtraining):
     """
 
     def __init__(
-            self
+            self,
+            lr=1e-3
             # todo learning rate. num epochs. what else?
     ):
-        666
+        self.lr = lr
 
     def train(
             self,
             model: model.DVAEdatadeclaration
     ):
-        666
-        # todo
 
+        nn = model.create_model()
+
+        optimizer = optim.Adam(nn.parameters(), lr=self.lr)
+
+        #todo set up loader
+
+        for i, (x_mb, y_mb) in enumerate(train_loader):
+            optimizer.zero_grad()
+
+            loss_recorder = loss.DVAEloss()
+
+            loss_recorder.get_total_loss().backward()
+            optimizer.step()
 
 ######################################################################################################
 ######################################################################################################
