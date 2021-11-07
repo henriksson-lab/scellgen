@@ -210,4 +210,4 @@ class FullyConnectedLayers(nn.Module):
         return [nn.weights for nn in self.linear_layers]
 
     def forward(self, x: torch.Tensor):
-        return self.fc_layers(x)
+        return self.fc_layers.forward(x)

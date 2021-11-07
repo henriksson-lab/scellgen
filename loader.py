@@ -1,4 +1,5 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
+import abc
 
 import torch
 from sklearn import preprocessing
@@ -7,6 +8,8 @@ import numpy as np
 import anndata
 
 import core
+import _dataloader
+
 
 
 ######################################################################################################
@@ -71,57 +74,39 @@ class DVAEloaderCounts(core.DVAEloader):
         self._sf_output = sf_output
         self._varname = adata_varname
         self._output = output
-        self._ndim = getattr(mod.adata, adata_varname).shape[0] # might be wrong todo
-
+        self.model = mod
         super().__init__(mod)
 
-
-    def get_dataset(self) -> torch.utils.data.Dataset:
+    def get_dataset(self) -> Dict[str, torch.utils.data.Dataset]:
         """
-        Get the count matrix as a Torch Dataset
+        Get the count matrix as a Dataset object
         """
-
+        datasets = {
+            self._output: _dataloader.AnnTorchDataset(np.int64, getattr(self.model.adata, self._varname))
+        }
         if self._sf_output is not None:
             library_log_obs, library_log_mean, library_log_var = calculate_library_size_priors(
                 self.model,
                 self._sf_batch_variable)
-
             df = pd.DataFrame({
                 "obs": library_log_obs,
                 "mean": library_log_mean,
                 "var": library_log_var
             })
-
-            # todo store this for later
-
-        pass
+            datasets[self._sf_output] = _dataloader.AnnTorchDataset(np.int64, df)
+        return datasets
 
     def define_outputs(
             self,
-            env: 'Environment',
+            env: core.Environment,
     ):
         """
         Register the outputs and information about them
         """
-        env.define_variable(self._output, self._ndim)
+        num_dim = getattr(self.model.adata, self._varname).shape[1]  # might be wrong todo
+        env.define_variable(self._output, num_dim)
         if self._sf_output is not None:
             env.define_variable(self._sf_output, 3)
-
-
-    def inject_environment(
-            self,
-            env: core.Environment,
-            data
-    ) -> None:
-        """
-        Performs the loading into the environment
-        """
-        env.store_variable(self._output, data["counts"])
-        if self._sf_output is not None:
-            env.store_variable(self._sf_output, data["sf"])
-        # todo is it really a tensor?
-
-
 
 
 
@@ -169,39 +154,24 @@ class DVAEloaderObs(core.DVAEloader):
 
         super().__init__(mod)
 
-    def get_dataset(
-            self,
-            device: torch.device,
-            dtype: torch.dtype = torch.float32
-    ) -> torch.utils.data.Dataset:
+    def get_dataset(self) -> Dict[str, torch.utils.data.Dataset]:
         """
-        Get the obs dataframe as a Torch Dataset
+        Get the obs dataframe as Torch Datasets
         """
         obs_df = self.model.adata[self._varname]
 
-        list_tx = []
+        list_x = []
         for key, mapping in enumerate(self._value_mapping):
             x = np.array(mapping.transform(obs_df[key]))
-            tx = torch.from_numpy(x, device=device, dtype=dtype)
-            list_tx.append(tx)
+            list_x.append(x)
 
-        a_tensor = torch.cat(list_tx, dim=1)
-
-        # todo turn into a Dataset
-
-    def inject_environment(
-            self,
-            env: core.Environment,
-            data
-    ) -> None:
-        """
-        Performs the loading into the environment
-        """
-        env.store_variable(self._output, data)
-        # todo is it really a tensor?
+        df = np.concatenate(list_x, dim=1)  # problem - mixed types? keep as two separate lists? not quite possible
+        return {
+            self._output: _dataloader.AnnTorchDataset(np.float32, df)
+        }
 
     def define_outputs(
             self,
-            env: 'Environment',
+            env: core.Environment,
     ):
         env.define_variable(self._output, self._num_dim_out)

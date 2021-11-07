@@ -1,3 +1,4 @@
+import _dataloader
 import core
 import abc
 
@@ -53,10 +54,14 @@ class DVAEtrainingBasic(DVAEtraining):
     ):
         do_optimize = True
         optimizer = optim.Adam(mod.parameters(), lr=self.lr)
-        dataloader = mod.get_dataloader()
+        dataset = mod.get_dataset()
 
-        for i, minibatch_data in enumerate(dataloader):
+        dl = _dataloader.BatchSamplerLoader()
+
+        for i, minibatch_data in enumerate(dl):
             optimizer.zero_grad()
+
+            print("round {}".format(dl))
 
             loss_recorder = mod.forward(minibatch_data)
 

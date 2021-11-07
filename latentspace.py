@@ -15,7 +15,6 @@ from hyperspherical_vae.distributions import HypersphericalUniform
 ######################################################################################################
 
 
-# https://github.com/nicola-decao/s-vae-pytorch/blob/master/examples/mnist.py
 class DVAElatentspacePeriodic(core.DVAEstep):
 
     def __init__(
@@ -26,6 +25,8 @@ class DVAElatentspacePeriodic(core.DVAEstep):
     ):
         """
         A periodic latent space, S^n. Implemented using von Mises and uniform periodic distribution
+
+        See https://github.com/nicola-decao/s-vae-pytorch/blob/master/examples/mnist.py
         """
         super().__init__(mod)
 

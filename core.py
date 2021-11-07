@@ -12,6 +12,8 @@ from torch.distributions import Distribution
 ######################################################################################################
 ######################################################################################################
 ######################################################################################################
+import _dataloader
+
 
 class DVAEloss():
 
@@ -95,6 +97,7 @@ class DVAEstep(torch.nn.Module, metaclass=abc.ABCMeta):
         pass
 
 
+
 ######################################################################################################
 ######################################################################################################
 ######################################################################################################
@@ -121,14 +124,11 @@ class DVAEloader(metaclass=abc.ABCMeta):
         """
         pass
 
+
     @abc.abstractmethod
-    def inject_environment(
-            self,
-            env: 'Environment',
-            data
-    ) -> None:
+    def get_dataset(self) -> Dict[str, torch.utils.data.Dataset]:
         """
-        Performs the loading into the environment
+        Return a dictionary of variable name -> Dataset
         """
         pass
 
@@ -284,7 +284,7 @@ class DVAEmodel(torch.nn.Module):
 
     def forward(
             self,
-            input_data: List
+            input_data: Dict[str, None]
     ) -> DVAEloss:
         """
         Perform all the steps
@@ -292,12 +292,9 @@ class DVAEmodel(torch.nn.Module):
         self.env.clear_variables()
         loss_recorder = DVAEloss()
 
-        # Prepare the data
-        for i, loader in enumerate(self._loaders):
-            loader.inject_environment(
-                self.env,
-                input_data[i]
-            )
+        # Load the data into the environment
+        for data_key, data_name in input_data.items():
+            self.env.store_variable(data_key, data_name)
 
         # Run all the steps
         for step in self._steps:
@@ -307,8 +304,14 @@ class DVAEmodel(torch.nn.Module):
             )
         return loss_recorder
 
-    def get_dataloader(self):
+    def get_dataset(self) -> torch.utils.data.Dataset:
         """
-
-        :return:
+        Obtain a dataloader given the definitions in the object
         """
+        all_datasets = {}
+        for one_loader in self._loaders:
+            these_datasets = one_loader.get_dataset()
+            for (k,v) in these_datasets.items():
+                all_datasets[k] = v
+                #todo do a sanity check here
+        return _dataloader.ConcatDictDataset(all_datasets)
