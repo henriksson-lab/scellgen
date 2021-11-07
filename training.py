@@ -1,17 +1,10 @@
-import model
+import core
 import abc
 
 
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
-import loss
-
-
-
-import torch
 
 
 def get_torch_device():
@@ -32,7 +25,7 @@ class DVAEtraining(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def train(
             self,
-            mod: model.DVAEmodel
+            mod: core.DVAEmodel
     ):
         pass
 
@@ -56,7 +49,7 @@ class DVAEtrainingBasic(DVAEtraining):
 
     def train(
             self,
-            mod: model.DVAEmodel
+            mod: core.DVAEmodel
     ):
         do_optimize = True
         optimizer = optim.Adam(mod.parameters(), lr=self.lr)
@@ -88,7 +81,7 @@ class DVAEtrainingOptimizeHyperparameters(DVAEtraining):
 
     def __init__(
             self,
-            training: DVAEtrainingNormal,
+            training: DVAEtraining,
             percent_training: float
     ):
         self.training = training
@@ -99,7 +92,7 @@ class DVAEtrainingOptimizeHyperparameters(DVAEtraining):
 
     def train(
             self,
-            mod: model.DVAEmodel
+            mod: core.DVAEmodel
     ):
         # do grid optimization for the hyperparameters
         self.training.train(mod)

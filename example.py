@@ -2,7 +2,7 @@ import scanpy as sc
 
 import encoders
 import decoders
-import model
+import core
 import latentspace
 import training
 import loader
@@ -15,7 +15,7 @@ adata = sc.read("foo.h5")
 # ##################################################################################################################
 
 
-model = model.DVAEmodelAnndata(adata)
+model = core.DVAEmodelAnndata(adata)
 
 # rename to input
 loader.DVAEloaderCounts(model)

@@ -1,6 +1,6 @@
 import abc
 
-import model
+import core
 import torch.nn as nn
 
 ######################################################################################################
@@ -23,7 +23,7 @@ class DVAEpredictionError(metaclass=abc.ABCMeta):
             self,
             input_x,
             encoder_output,
-            loss_recorder: model.DVAEloss
+            loss_recorder: core.DVAEloss
     ):
         pass
 
@@ -46,7 +46,7 @@ class DVAEpredictionErrorCE(DVAEpredictionError):
             self,
             input_x,
             encoder_output,
-            loss_recorder: model.DVAEloss
+            loss_recorder: core.DVAEloss
             ):
         """
         Compute the loss
@@ -73,7 +73,7 @@ class DVAEpredictionErrorLogp(DVAEpredictionError):
             self,
             input_x,
             encoder_output,
-            loss_recorder: model.DVAEloss
+            loss_recorder: core.DVAEloss
             ):
         """
         Compute the loss

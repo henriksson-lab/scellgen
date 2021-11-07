@@ -1,7 +1,7 @@
 from typing import List, Optional
 
 import functools
-import model
+import core
 
 import torch
 import torch.nn.functional as F
@@ -16,11 +16,11 @@ from hyperspherical_vae.distributions import HypersphericalUniform
 
 
 # https://github.com/nicola-decao/s-vae-pytorch/blob/master/examples/mnist.py
-class DVAElatentspacePeriodic(model.DVAEstep):
+class DVAElatentspacePeriodic(core.DVAEstep):
 
     def __init__(
             self,
-            mod: model.DVAEmodel,
+            mod: core.DVAEmodel,
             inputs,  # complex object!
             output: str
     ):
@@ -46,8 +46,8 @@ class DVAElatentspacePeriodic(model.DVAEstep):
 
     def forward(
             self,
-            env: model.Environment,
-            loss_recorder: model.DVAEloss
+            env: core.Environment,
+            loss_recorder: core.DVAEloss
     ):
         """
         Perform the reparameterization
@@ -75,11 +75,11 @@ class DVAElatentspacePeriodic(model.DVAEstep):
 ######################################################################################################
 
 
-class DVAElatentspaceLinear(model.DVAEstep):
+class DVAElatentspaceLinear(core.DVAEstep):
 
     def __init__(
             self,
-            mod: model.DVAEmodel,
+            mod: core.DVAEmodel,
             inputs,  # complex object!
             output: str
     ):
@@ -105,8 +105,8 @@ class DVAElatentspaceLinear(model.DVAEstep):
 
     def forward(
             self,
-            env: model.Environment,
-            loss_recorder: model.DVAEloss
+            env: core.Environment,
+            loss_recorder: core.DVAEloss
     ):
         """
         Perform the reparameterization
@@ -131,11 +131,11 @@ class DVAElatentspaceLinear(model.DVAEstep):
 ######################################################################################################
 
 
-class DVAElatentspaceSizeFactor(model.DVAEstep):
+class DVAElatentspaceSizeFactor(core.DVAEstep):
 
     def __init__(
             self,
-            mod: model.DVAEmodel,
+            mod: core.DVAEmodel,
             inputs,  # complex object!
             output: str = "sf_latent",
             sf_empirical: str = "sf_emp"  # todo make a loader that prepares this data
@@ -162,8 +162,8 @@ class DVAElatentspaceSizeFactor(model.DVAEstep):
 
     def forward(
             self,
-            env: model.Environment,
-            loss_recorder: model.DVAEloss
+            env: core.Environment,
+            loss_recorder: core.DVAEloss
     ):
         """
         Perform the reparameterization

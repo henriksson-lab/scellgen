@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 import anndata
 
-import model
+import core
 
 
 ######################################################################################################
@@ -49,11 +49,11 @@ def calculate_library_size_priors(
 ######################################################################################################
 
 
-class DVAEloaderCounts(model.DVAEloader):
+class DVAEloaderCounts(core.DVAEloader):
 
     def __init__(
             self,
-            mod: model.DVAEmodel,
+            mod: core.DVAEmodel,
             output: str = "X",
             adata_varname: str = "X",
 
@@ -67,18 +67,16 @@ class DVAEloaderCounts(model.DVAEloader):
         Empirical size factors will be computed if an output variable is specified, with batch-specific
         factors if an obs-column denoting batch is provided
         """
-        super().__init__(mod)
         self._sf_batch_variable = sf_batch_variable
         self._sf_output = sf_output
         self._varname = adata_varname
         self._output = output
+        self._ndim = getattr(mod.adata, adata_varname).shape[0] # might be wrong todo
 
-        mod.env.define_variable(output, mod.adata[adata_varname].shape[0])  # todo can be totally wrong
+        super().__init__(mod)
 
-        if sf_output is not None:
-            mod.env.define_variable(sf_output, 3)
 
-    def get_dataset(self) -> torch.Dataset:
+    def get_dataset(self) -> torch.utils.data.Dataset:
         """
         Get the count matrix as a Torch Dataset
         """
@@ -98,9 +96,21 @@ class DVAEloaderCounts(model.DVAEloader):
 
         pass
 
+    def define_outputs(
+            self,
+            env: 'Environment',
+    ):
+        """
+        Register the outputs and information about them
+        """
+        env.define_variable(self._output, self._ndim)
+        if self._sf_output is not None:
+            env.define_variable(self._sf_output, 3)
+
+
     def inject_environment(
             self,
-            env: model.Environment,
+            env: core.Environment,
             data
     ) -> None:
         """
@@ -113,15 +123,17 @@ class DVAEloaderCounts(model.DVAEloader):
 
 
 
+
+
 ######################################################################################################
 ######################################################################################################
 ######################################################################################################
 
-class DVAEloaderObs(model.DVAEloader):
+class DVAEloaderObs(core.DVAEloader):
 
     def __init__(
             self,
-            mod: model.DVAEmodel,
+            mod: core.DVAEmodel,
             list_cat: List[str] = [],
             list_cont: List[str] = [],
             output: str = "obs",
@@ -131,13 +143,14 @@ class DVAEloaderObs(model.DVAEloader):
         Loads data from the adata["obs"], including preprocessing as needed.
         This includes encoding of the categorial data especially
         """
-        super().__init__(mod)
         self.list_cat = list_cat
         self.list_cont = list_cont
         self._varname = adata_varname
         self._output = output
+        self._value_mapping = {}
 
-        obs_df = mod.adata[adata_varname]
+        # Get the class attribute with values
+        obs_df = getattr(mod.adata, adata_varname)
 
         # For each continuous category, produce a mapping to mean 0, variance 1
         self._num_dim_out = len(self.list_cont)
@@ -154,13 +167,13 @@ class DVAEloaderObs(model.DVAEloader):
             self._value_mapping[one_cat] = lb
             self._num_dim_out += len(lb.transform(lb.classes_[0])[0])
 
-        mod.env.define_variable(output, self._num_dim_out)
+        super().__init__(mod)
 
     def get_dataset(
             self,
             device: torch.device,
             dtype: torch.dtype = torch.float32
-    ) -> torch.Dataset:
+    ) -> torch.utils.data.Dataset:
         """
         Get the obs dataframe as a Torch Dataset
         """
@@ -178,7 +191,7 @@ class DVAEloaderObs(model.DVAEloader):
 
     def inject_environment(
             self,
-            env: model.Environment,
+            env: core.Environment,
             data
     ) -> None:
         """
@@ -186,3 +199,9 @@ class DVAEloaderObs(model.DVAEloader):
         """
         env.store_variable(self._output, data)
         # todo is it really a tensor?
+
+    def define_outputs(
+            self,
+            env: 'Environment',
+    ):
+        env.define_variable(self._output, self._num_dim_out)

@@ -2,13 +2,12 @@ import scanpy as sc
 
 import encoders
 import decoders
-import model
+import core
 import latentspace
 import training
 import loader
 
-adata = sc.read("foo.h5")
-
+adata = sc.read("data/small_rna.h5ad")
 
 device = training.get_torch_device()
 
@@ -18,21 +17,21 @@ device = training.get_torch_device()
 # ##################################################################################################################
 
 
-model = model.DVAEmodelAnndata(adata)
+m = core.DVAEmodel(adata)
 
 # rename to input
-loader.DVAEloaderCounts(model)
+loader.DVAEloaderCounts(m)
 
 # encoder layer
-encoders.DVAEencoderFC(model, inputs="X", output="enc_rna", n_output=10)
+encoders.DVAEencoderFC(m, inputs="X", output="enc_rna", n_output=10)
 
 # latent space
-latentspace.DVAElatentspaceSizeFactor(model, output="sf_rna")
-latentspace.DVAElatentspaceLinear(model, inputs="enc_rna", output="z")
+latentspace.DVAElatentspaceSizeFactor(m, output="sf_rna")
+latentspace.DVAElatentspaceLinear(m, inputs="enc_rna", output="z")
 
 # decoder layer
 output_genes = adata.var.index[adata.var.is_highly_variable]
-decoders.DVAErnaseq(model, inputs="z", sf="sf_rna", dispersion="zinb")
+decoders.DVAErnaseq(m, inputs="z", sf="sf_rna", dispersion="zinb")
 
 trainer = training.DVAEtrainingBasic()
-trainer.train(model)
+trainer.train(m)

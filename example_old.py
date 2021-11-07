@@ -2,7 +2,7 @@ import scanpy as sc
 from anndata import AnnData
 
 import covariate
-import model
+import core
 import latentspace
 import training
 
@@ -32,7 +32,7 @@ output_genes = adata.obs.index[adata.obs.is_highly_variable]
 
 covariates = covariate.DVAEcovariate(adata, list_cat=["batch"])
 
-model = model.DVAEmodelAnndata(
+model = core.DVAEmodelAnndata(
     adata,
     zspace,
     covariates)

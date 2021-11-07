@@ -4,7 +4,7 @@ from typing import List
 import torch
 import torch.nn as nn
 
-import model
+import core
 
 
 
@@ -13,10 +13,10 @@ import model
 ######################################################################################################
 
 
-class DVAEencoderFC(model.DVAEstep):
+class DVAEencoderFC(core.DVAEstep):
     def __init__(
             self,
-            mod: model.DVAEmodel,
+            mod: core.DVAEmodel,
             inputs,   # complex object!
             output: str,
             n_output: int,
@@ -31,11 +31,11 @@ class DVAEencoderFC(model.DVAEstep):
         self._inputs = inputs
         self._covariates = covariates
         self._output = output
+        self._n_output = n_output
 
-        # Check input size and ensure it is there. Then define the output
+        # Check input size and ensure it is there
         n_input = mod.env.get_variable_dims(inputs)
         n_covariates = mod.env.get_variable_dims(covariates)
-        mod.env.define_variable(output, n_output)
 
         self.layer = FullyConnectedLayers(
             n_in=n_input,
@@ -47,8 +47,8 @@ class DVAEencoderFC(model.DVAEstep):
 
     def forward(
             self,
-            env: model.Environment,
-            loss_recorder: model.DVAEloss
+            env: core.Environment,
+            loss_recorder: core.DVAEloss
     ):
         """
         Perform the encoding
@@ -57,6 +57,14 @@ class DVAEencoderFC(model.DVAEstep):
         x_cov = env.get_variable_as_tensor(self._covariates)
         out = self.layer.forward(torch.cat(x_input, x_cov))
         env.store_variable(self._output, out)
+
+    def define_outputs(
+            self,
+            env: core.Environment
+    ):
+        env.define_variable(self._output, self._n_output)
+
+
 
 
 # #####################################################################################################

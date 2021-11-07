@@ -6,7 +6,7 @@ from torch.distributions import Normal, Poisson, Distribution
 
 from fromscvi import ZeroInflatedNegativeBinomial, NegativeBinomial
 
-import model
+import core
 
 
 ######################################################################################################
@@ -20,10 +20,10 @@ import model
 ######################################################################################################
 ######################################################################################################
 
-class DVAEdecoderRnaseq(model.DVAEstep):
+class DVAEdecoderRnaseq(core.DVAEstep):
     def __init__(
             self,
-            mod: model.DVAEmodel,
+            mod: core.DVAEmodel,
             inputs,  # complex object!
             gene_list: List[str],
             output: str = "rnaseq_count",
@@ -66,8 +66,8 @@ class DVAEdecoderRnaseq(model.DVAEstep):
 
     def forward(
             self,
-            env: model.Environment,
-            loss_recorder: model.DVAEloss
+            env: core.Environment,
+            loss_recorder: core.DVAEloss
     ):
         """
         Perform the decoding into distributions representing RNAseq counts
