@@ -1,14 +1,10 @@
-from abc import ABC
 from typing import List, Optional
 
-import abc
-import torch
 import functools
-import loss
+import model
 
-
-from torch.distributions import Normal, Poisson, Distribution
-from torch.distributions import kl_divergence as kl
+import torch
+import torch.nn.functional as F
 
 from hyperspherical_vae.distributions import VonMisesFisher
 from hyperspherical_vae.distributions import HypersphericalUniform
@@ -18,61 +14,46 @@ from hyperspherical_vae.distributions import HypersphericalUniform
 ######################################################################################################
 ######################################################################################################
 
-class DVAElatentspace(metaclass=abc.ABCMeta):
-
-    def __init__(
-            self,
-            n_dim_in: int,
-            n_dim_out: int
-    ):
-        """
-        A latent space takes a number of inputs and then outputs. These technically need not be of the same size.
-        This is an abstract class meant to be inherited
-        """
-        self.n_dim_in = n_dim_in
-        self.n_dim_out = n_dim_out
-
-    @abc.abstractmethod
-    def reparameterize(
-            self,
-            x: torch.Tensor,
-            loss_recorder: loss.DVAEloss
-    ):
-        """
-        Takes n-dim input and returns the distribution corresponding to the sample
-        """
-        pass
-
-
-
-######################################################################################################
-######################################################################################################
-######################################################################################################
-
 
 # https://github.com/nicola-decao/s-vae-pytorch/blob/master/examples/mnist.py
-class DVAElatentspacePeriodic(DVAElatentspace):
+class DVAElatentspacePeriodic(model.DVAEstep):
 
     def __init__(
             self,
-            n_dim: int = 1
+            mod: model.DVAEmodel,
+            inputs,  # complex object!
+            output: str
     ):
         """
         A periodic latent space, S^n. Implemented using von Mises and uniform periodic distribution
         """
-        super(DVAElatentspace, self).__init__(n_dim * 2, n_dim * 2)
+        super().__init__(mod)
 
-    @abc.abstractmethod
-    def reparameterize(
+        self._inputs = inputs
+        self._output = output
+
+        # Check input size and ensure it is there
+        n_input = mod.env.get_input_dims(inputs)
+
+        # For latent spaces, the input and output coordinate dimensions are generally the same
+        self._z_dim = n_input
+        mod.env.define_output(output, self._z_dim) # todo should be half number outputs
+
+        if not (n_input % 2 == 0 and n_input > 0):
+            raise Exception(
+                "Periodic latent spaces need an even number of inputs, representing mean and average. Got {}".
+                format(n_input))
+
+    def forward(
             self,
-            x: torch.Tensor,
-            loss_recorder: loss.DVAEloss
+            env: model.Environment,
+            loss_recorder: model.DVAEloss
     ):
         """
-        Takes n-dim input and returns a n-dim output which holds the random sampling
+        Perform the reparameterization
         """
         # Split input vector into latent space parameters
-        z_dim = self.n_dim_in
+        z_dim = self._z_dim
         z_mean, z_var = torch.split([z_dim, z_dim])
 
         # compute mean and concentration of the von Mises-Fisher
@@ -85,9 +66,8 @@ class DVAElatentspacePeriodic(DVAElatentspace):
         p_z = HypersphericalUniform(z_dim - 1)
 
         loss_recorder.add_kl(torch.distributions.kl.kl_divergence(q_z, p_z).mean())
-        return q_z, p_z
 
-
+        env.store_output(self._output, q_z)
 
 
 ######################################################################################################
@@ -95,39 +75,55 @@ class DVAElatentspacePeriodic(DVAElatentspace):
 ######################################################################################################
 
 
-class DVAElatentspaceLinear(DVAElatentspace):
+class DVAElatentspaceLinear(model.DVAEstep):
 
     def __init__(
             self,
-            n_dim: int = 1
+            mod: model.DVAEmodel,
+            inputs,  # complex object!
+            output: str
     ):
         """
         A linear latent space, N^n - the regular kind
         """
-        super(DVAElatentspace, self).__init__(n_dim * 2, n_dim * 2)
+        super().__init__(mod)
 
-    def reparameterize(
+        self._inputs = inputs
+        self._output = output
+
+        # Check input size and ensure it is there
+        n_input = mod.env.get_input_dims(inputs)
+
+        # For latent spaces, the input and output coordinate dimensions are generally the same
+        self._z_dim = n_input
+        mod.env.define_output(output, self._z_dim)  # todo should be half number outputs
+
+        if not (n_input % 2 == 0 and n_input > 0):
+            raise Exception(
+                "Linear latent spaces need an even number of inputs, representing mean and average. Got {}".
+                format(n_input))
+
+    def forward(
             self,
-            x: torch.Tensor,
-            loss_recorder: loss.DVAEloss
+            env: model.Environment,
+            loss_recorder: model.DVAEloss
     ):
         """
-        Takes n-dim input and returns a n-dim output which holds the random sampling
+        Perform the reparameterization
         """
         # Split input vector into latent space parameters
         z_dim = self.n_dim_in
         z_mean, z_var = torch.split([z_dim, z_dim])
 
         # ensure positive variance. use exp instead?
-        z_var = torch.nn.functional.softplus(self.fc_var(x))
+        z_var = torch.nn.functional.softplus(z_var)
 
         # The distributions to compare
         q_z = torch.distributions.normal.Normal(z_mean, z_var)
         p_z = torch.distributions.normal.Normal(torch.zeros_like(z_mean), torch.ones_like(z_var))
 
         loss_recorder.add_kl(torch.distributions.kl.kl_divergence(q_z, p_z).sum(-1).mean())
-        return q_z, p_z
-
+        env.store_output(self._output, q_z)
 
 
 ######################################################################################################
@@ -135,42 +131,57 @@ class DVAElatentspaceLinear(DVAElatentspace):
 ######################################################################################################
 
 
-class DVAElatentspaceConcat(DVAElatentspace):
+class DVAElatentspaceSizeFactor(model.DVAEstep):
 
     def __init__(
             self,
-            spaces: List[DVAElatentspace]
+            mod: model.DVAEmodel,
+            inputs,  # complex object!
+            sf_empirical = ["sf_emp"],  # todo make a loader that prepares this data
+            output: str
     ):
         """
-        This class glues multiple latent spaces together
+        A size factor latent space, N^1
         """
-        self.spaces = spaces
-        n_dim_in = functools.reduce(lambda a, b: a.n_dim_in + b.n_dim_in, spaces, 0)
-        n_dim_out = functools.reduce(lambda a, b: a.n_dim_out + b.n_dim_out, spaces, 0)
-        if len(spaces) < 2:
-            print("Need at leas 2 latent spaces to concatenate")
-            raise
-        super(DVAElatentspace, self).__init__(n_dim_in, n_dim_out)
+        super().__init__(mod)
 
-    def reparameterize(
+        self.sf_empirical = sf_empirical
+        self._inputs = inputs
+        self._output = output
+
+        # Check input size and ensure it is there
+        n_input = mod.env.get_input_dims(inputs)
+
+        # For latent spaces, the input and output coordinate dimensions are generally the same
+        self._z_dim = n_input
+        mod.env.define_output(output, self._z_dim)
+
+        if not (n_input != 2):
+            raise Exception(
+                "Size factor latent spaces should have 2 inputs, representing mean and average. Got {}".format(n_input))
+
+    def forward(
             self,
-            x: torch.Tensor,
-            loss_recorder: loss.DVAEloss
+            env: model.Environment,
+            loss_recorder: model.DVAEloss
     ):
         """
-        Reparameterize each latent space and return the combined product
+        Perform the reparameterization
         """
-        # split into subspaces and reparameterize each
-        sizes = [x.n_dim for x in self.spaces]
-        start_i = 0
-        list_z = []
-        for i, s in enumerate(sizes):
-            z = self.spaces.reparameterize(
-                x[range(start_i, start_i + s)],
-                loss_recorder
-            )
-            list_z.append(z)
-            start_i += s
+        # Split input vector into latent space parameters
+        z_dim = self.n_dim_in
+        z_mean, z_var = torch.split([z_dim, z_dim])
 
-        # return everything concatenated
-        return list_z  # todo wrong. need to make a joint distribution
+        # ensure positive variance. use exp instead?
+        z_var = torch.nn.functional.softplus(z_var)
+
+        # Obtain empirical distributions of sizes
+        sf_empirical = env.get_input_tensor(self.sf_empirical)
+        sf_empirical_mean, sf_empirical_var = torch.split(sf_empirical, [1,1])
+
+        # The distributions to compare
+        q_z = torch.distributions.normal.Normal(z_mean, z_var)
+        p_z = torch.distributions.normal.Normal(sf_empirical_mean, sf_empirical_var)
+
+        loss_recorder.add_kl(torch.distributions.kl.kl_divergence(q_z, p_z).sum(-1).mean())
+        env.store_output(self._output, q_z)

@@ -1,31 +1,11 @@
 import collections
 from typing import Callable, Iterable, List, Optional
-import abc
 
 import torch
 import torch.nn as nn
 
-import loss
+import model
 
-
-class DVAEencoder(metaclass=abc.ABCMeta):
-    """
-    Takes data and crunches it down to latent space input.
-
-    This is an abstract class meant to be inherited
-    """
-
-    def __init__(self, n_input, n_output):
-        self.n_input = n_input
-        self.n_output = n_output
-
-    @abc.abstractmethod
-    def forward(
-            self,
-            x: torch.Tensor,
-            loss_recorder: loss.DVAEloss
-    ):
-        pass
 
 
 ######################################################################################################
@@ -33,19 +13,30 @@ class DVAEencoder(metaclass=abc.ABCMeta):
 ######################################################################################################
 
 
-class DVAEencoderFC(DVAEencoder):
+class DVAEencoderFC(model.DVAEstep):
     def __init__(
             self,
-            n_input: int,
+            mod: model.DVAEmodel,
+            inputs,   # complex object!
+            output: str,
             n_output: int,
-            n_covariates: int,
+            covariates = None, # complex object!
             n_layers: int = 1,
             n_hidden: int = 128
     ):
         """
         Fully connected neural network encoder
         """
-        super().__init__(n_input, n_output)
+        super().__init__(mod)
+        self._inputs = inputs
+        self._covariates = covariates
+        self._output = output
+
+        # Check input size and ensure it is there. Then define the output
+        n_input = mod.env.get_input_dims(inputs)
+        n_covariates = mod.env.get_input_dims(covariates)
+        mod.env.define_output(output, n_output)
+
         self.layer = FullyConnectedLayers(
             n_in=n_input,
             n_out=n_output,
@@ -56,10 +47,16 @@ class DVAEencoderFC(DVAEencoder):
 
     def forward(
             self,
-            x: torch.Tensor,
-            loss_recorder: loss.DVAEloss
+            env: model.Environment,
+            loss_recorder: model.DVAEloss
     ):
-        return self.layer.forward(x)
+        """
+        Perform the encoding
+        """
+        x_input = env.get_input_tensor(self._inputs)
+        x_cov = env.get_input_tensor(self._covariates)
+        out = self.layer.forward(torch.cat(x_input, x_cov))
+        env.store_output(self._output, out)
 
 
 # #####################################################################################################
