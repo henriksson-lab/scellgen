@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Dict
 import abc
 import operator
 import functools
@@ -65,7 +65,7 @@ class DVAEstep(metaclass=abc.ABCMeta):
             model: 'DVAEmodel'
     ):
         """
-        A computational step
+        A step in which computation is performed or data loaded
         """
         self.model = model
 
@@ -110,6 +110,16 @@ class DVAEloader(metaclass=abc.ABCMeta):
         """
         pass
 
+    @abc.abstractmethod
+    def inject_environment(
+            self,
+            env: 'Environment',
+            data
+    ) -> None:
+        """
+        Performs the loading into the environment
+        """
+        pass
 
 ######################################################################################################
 ######################################################################################################
@@ -255,12 +265,24 @@ class DVAEmodel:
         """
         pass
 
-    def create_nn(self) -> DVAEloss:
+    def forward(
+            self,
+            input_data: List
+    ) -> DVAEloss:
         """
         Perform all the steps
         """
         self.env.clear_variables()
         loss_recorder = DVAEloss()
+
+        # Prepare the data
+        for i, loader in enumerate(self._loaders):
+            loader.inject_environment(
+                self.env,
+                input_data[i]
+            )
+
+        # Run all the steps
         for step in self._steps:
             step.forward(
                 self.env,
@@ -268,3 +290,15 @@ class DVAEmodel:
             )
         return loss_recorder
 
+    def parameters(self):
+        """
+        Return parameters for the model
+        """
+        # todo do properly
+        return []
+
+    def get_dataloader(self):
+        """
+
+        :return:
+        """

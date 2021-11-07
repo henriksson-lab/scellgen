@@ -10,6 +10,18 @@ import torch.utils.data
 import loss
 
 
+
+import torch
+
+
+def get_torch_device():
+    print(torch.cuda.is_available())
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    #device = torch.device("cpu")
+    print(device)
+    return device
+
+
 class DVAEtraining(metaclass=abc.ABCMeta):
     """
     A strategy for training
@@ -46,18 +58,23 @@ class DVAEtrainingBasic(DVAEtraining):
             self,
             mod: model.DVAEmodel
     ):
+        do_optimize = True
+        optimizer = optim.Adam(mod.parameters(), lr=self.lr)
+        dataloader = mod.get_dataloader()
 
-        loss_recorder, nn = mod.create_nn()
-
-        optimizer = optim.Adam(nn.parameters(), lr=self.lr)
-
-        #todo set up loader
-
-        for i, (x_mb, y_mb) in enumerate(train_loader):
+        for i, minibatch_data in enumerate(dataloader):
             optimizer.zero_grad()
 
-            loss_recorder.get_total_loss().backward()
-            optimizer.step()
+            loss_recorder = mod.forward(minibatch_data)
+
+            if do_optimize:
+                # Calculate gradients and improve values accordingly
+                loss_recorder.get_total_loss().backward()
+                optimizer.step()
+
+
+
+
 
 ######################################################################################################
 ######################################################################################################

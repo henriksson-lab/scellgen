@@ -1,11 +1,13 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import torch
 from sklearn import preprocessing
 import pandas as pd
 import numpy as np
+import anndata
 
 import model
+
 
 ######################################################################################################
 ######################################################################################################
@@ -41,6 +43,7 @@ def calculate_library_size_priors(
 
     return library_log_obs, library_log_mean, library_log_var
 
+
 ######################################################################################################
 ######################################################################################################
 ######################################################################################################
@@ -55,8 +58,8 @@ class DVAEloaderCounts(model.DVAEloader):
             adata_varname: str = "X",
 
             # Set if size factors should be computed
-            sf_output: str = "X_sf",
-            sf_batch_variable: str = None
+            sf_output: Optional[str] = "X_sf",
+            sf_batch_variable: Optional[str] = None
     ):
         """
         Loads data from adata["X"]
@@ -75,7 +78,6 @@ class DVAEloaderCounts(model.DVAEloader):
         if sf_output is not None:
             mod.env.define_variable(sf_output, 3)
 
-
     def get_dataset(self) -> torch.Dataset:
         """
         Get the count matrix as a Torch Dataset
@@ -87,13 +89,28 @@ class DVAEloaderCounts(model.DVAEloader):
                 self._sf_batch_variable)
 
             df = pd.DataFrame({
-                "obs":library_log_obs,
-                "mean":library_log_mean,
-                "var":library_log_var
+                "obs": library_log_obs,
+                "mean": library_log_mean,
+                "var": library_log_var
             })
 
+            # todo store this for later
 
         pass
+
+    def inject_environment(
+            self,
+            env: model.Environment,
+            data
+    ) -> None:
+        """
+        Performs the loading into the environment
+        """
+        env.store_variable(self._output, data["counts"])
+        if self._sf_output is not None:
+            env.store_variable(self._sf_output, data["sf"])
+        # todo is it really a tensor?
+
 
 
 ######################################################################################################
@@ -120,6 +137,8 @@ class DVAEloaderObs(model.DVAEloader):
         self._varname = adata_varname
         self._output = output
 
+        obs_df = mod.adata[adata_varname]
+
         # For each continuous category, produce a mapping to mean 0, variance 1
         self._num_dim_out = len(self.list_cont)
         for one_cat in list_cont:
@@ -136,9 +155,6 @@ class DVAEloaderObs(model.DVAEloader):
             self._num_dim_out += len(lb.transform(lb.classes_[0])[0])
 
         mod.env.define_variable(output, self._num_dim_out)
-
-
-
 
     def get_dataset(
             self,
@@ -158,6 +174,15 @@ class DVAEloaderObs(model.DVAEloader):
 
         a_tensor = torch.cat(list_tx, dim=1)
 
-
         # todo turn into a Dataset
 
+    def inject_environment(
+            self,
+            env: model.Environment,
+            data
+    ) -> None:
+        """
+        Performs the loading into the environment
+        """
+        env.store_variable(self._output, data)
+        # todo is it really a tensor?
