@@ -33,11 +33,11 @@ class DVAElatentspacePeriodic(model.DVAEstep):
         self._output = output
 
         # Check input size and ensure it is there
-        n_input = mod.env.get_input_dims(inputs)
+        n_input = mod.env.get_variable_dims(inputs)
 
         # For latent spaces, the input and output coordinate dimensions are generally the same
         self._z_dim = n_input
-        mod.env.define_output(output, self._z_dim) # todo should be half number outputs
+        mod.env.define_variable(output, self._z_dim) # todo should be half number outputs
 
         if not (n_input % 2 == 0 and n_input > 0):
             raise Exception(
@@ -67,7 +67,7 @@ class DVAElatentspacePeriodic(model.DVAEstep):
 
         loss_recorder.add_kl(torch.distributions.kl.kl_divergence(q_z, p_z).mean())
 
-        env.store_output(self._output, q_z)
+        env.store_variable(self._output, q_z)
 
 
 ######################################################################################################
@@ -92,11 +92,11 @@ class DVAElatentspaceLinear(model.DVAEstep):
         self._output = output
 
         # Check input size and ensure it is there
-        n_input = mod.env.get_input_dims(inputs)
+        n_input = mod.env.get_variable_dims(inputs)
 
         # For latent spaces, the input and output coordinate dimensions are generally the same
         self._z_dim = n_input
-        mod.env.define_output(output, self._z_dim)  # todo should be half number outputs
+        mod.env.define_variable(output, self._z_dim)  # todo should be half number outputs
 
         if not (n_input % 2 == 0 and n_input > 0):
             raise Exception(
@@ -123,7 +123,7 @@ class DVAElatentspaceLinear(model.DVAEstep):
         p_z = torch.distributions.normal.Normal(torch.zeros_like(z_mean), torch.ones_like(z_var))
 
         loss_recorder.add_kl(torch.distributions.kl.kl_divergence(q_z, p_z).sum(-1).mean())
-        env.store_output(self._output, q_z)
+        env.store_variable(self._output, q_z)
 
 
 ######################################################################################################
@@ -137,8 +137,8 @@ class DVAElatentspaceSizeFactor(model.DVAEstep):
             self,
             mod: model.DVAEmodel,
             inputs,  # complex object!
-            sf_empirical = ["sf_emp"],  # todo make a loader that prepares this data
-            output: str
+            output: str = "sf_latent",
+            sf_empirical: str = "sf_emp"  # todo make a loader that prepares this data
     ):
         """
         A size factor latent space, N^1
@@ -150,11 +150,11 @@ class DVAElatentspaceSizeFactor(model.DVAEstep):
         self._output = output
 
         # Check input size and ensure it is there
-        n_input = mod.env.get_input_dims(inputs)
+        n_input = mod.env.get_variable_dims(inputs)
 
         # For latent spaces, the input and output coordinate dimensions are generally the same
         self._z_dim = n_input
-        mod.env.define_output(output, self._z_dim)
+        mod.env.define_variable(output, self._z_dim)
 
         if not (n_input != 2):
             raise Exception(
@@ -176,7 +176,7 @@ class DVAElatentspaceSizeFactor(model.DVAEstep):
         z_var = torch.nn.functional.softplus(z_var)
 
         # Obtain empirical distributions of sizes
-        sf_empirical = env.get_input_tensor(self.sf_empirical)
+        sf_empirical = env.get_variable_as_tensor(self.sf_empirical)
         sf_empirical_mean, sf_empirical_var = torch.split(sf_empirical, [1,1])
 
         # The distributions to compare
@@ -184,4 +184,4 @@ class DVAElatentspaceSizeFactor(model.DVAEstep):
         p_z = torch.distributions.normal.Normal(sf_empirical_mean, sf_empirical_var)
 
         loss_recorder.add_kl(torch.distributions.kl.kl_divergence(q_z, p_z).sum(-1).mean())
-        env.store_output(self._output, q_z)
+        env.store_variable(self._output, q_z)

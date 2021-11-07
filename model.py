@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 import abc
 import operator
 import functools
@@ -7,8 +7,6 @@ import anndata
 
 import torch
 from torch.distributions import Distribution
-
-
 
 
 ######################################################################################################
@@ -123,11 +121,19 @@ class Environment:
             self,
             model: 'DVAEmodel'
     ):
+        """
+        An environment is a place where all inputs and outputs are stored while the
+        torch graph is being built
+
+        _output_values   List of values in the environment. Tensor or Distribution
+        _output_samples  Caches samples from _output_values, if it is a Distribution
+        """
         self._model = model
         self._outputs = dict()
         self._output_values = dict()
+        self._output_samples = dict()
 
-    def define_output(
+    def define_variable(
             self,
             output_name: str,
             dim: int
@@ -140,7 +146,7 @@ class Environment:
         else:
             self._outputs[output_name] = dim
 
-    def _get_input_dims_of_one(self, one_input):
+    def _get_variable_dims_of_one(self, one_input):
         """
         Compute the dimensions of one input
         """
@@ -152,7 +158,7 @@ class Environment:
         else:
             raise Exception("not implemented yet, subsets of inputs")
 
-    def get_input_dims(self, inputs):
+    def get_variable_dims(self, inputs):
         """
         Compute the dimensions of the given input
         """
@@ -160,43 +166,52 @@ class Environment:
             raise Exception("No inputs")
         if not isinstance(inputs, list):
             inputs = [inputs]
-        return functools.reduce(operator.add, [self._get_input_dims_of_one(i) for i in inputs], 0)
+        return functools.reduce(operator.add, [self._get_variable_dims_of_one(i) for i in inputs], 0)
 
-    def get_input_tensor(self, inputs):
+    def get_variable_as_tensor(self, inputs):
         """
         Get a tensor for the values that have stored either by a loader or another computational step.
         If a Distribution was stored, then instead obtain a sample
         """
 
+        # Ensure the input is a list of items
+        if inputs is None:
+            raise Exception("No inputs")
+        if not isinstance(inputs, list):
+            inputs = [inputs]
 
+        # Gather all inputs
         all_values = []
-
-        # todo iterate over inputs
-        value = self._output_values[inputs]
-
-        if isinstance(value,Distribution):
-            pass
-            # todo sample
-        elif isinstance(value, torch.Tensor):
-            pass
-            #todo
-        else
-            raise Exception("Unknown type")
-        # todo
-
-
+        for one_input in inputs:
+            value = self._output_values[one_input]
+            if isinstance(value, Distribution):
+                # Distributions must be sampled. Cache this value in case it is used multiple times
+                if one_input not in self._output_samples:
+                    one_sample = value.sample()
+                    self._output_samples[one_input] = one_sample
+                    return one_sample
+                else:
+                    return self._output_samples[one_input]
+            elif isinstance(value, torch.Tensor):
+                # Tensors can be added right away
+                all_values.append(value)
+            else:
+                raise Exception("Unknown type of variable {}".format(one_input))
         return torch.cat(all_values)
 
-        # todo should sample if distribution
-
-    def store_output(self, output, out):
+    def store_variable(
+            self,
+            output: str,
+            out: Union[torch.Tensor,Distribution]
+    ):
+        """
+        Store one value in the environment. Can be a Tensor or Distribution
+        """
         self._output_values[output] = out
-        pass
-
 
     def clear_variables(self):
-
-        pass
+        self._output_values = []
+        self._output_samples = []
 
 
 ######################################################################################################
@@ -240,10 +255,16 @@ class DVAEmodel:
         """
         pass
 
-    def perform_steps(self):
+    def create_nn(self) -> DVAEloss:
         """
-        Perform all the step
+        Perform all the steps
         """
         self.env.clear_variables()
+        loss_recorder = DVAEloss()
         for step in self._steps:
-            step.forward()
+            step.forward(
+                self.env,
+                loss_recorder
+            )
+        return loss_recorder
+

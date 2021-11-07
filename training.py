@@ -20,7 +20,7 @@ class DVAEtraining(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def train(
             self,
-            model: model.DVAEdatadeclaration
+            mod: model.DVAEmodel
     ):
         pass
 
@@ -30,7 +30,7 @@ class DVAEtraining(metaclass=abc.ABCMeta):
 ######################################################################################################
 
 
-class DVAEtrainingNormal(DVAEtraining):
+class DVAEtrainingBasic(DVAEtraining):
     """
     Your normal for-loop doing gradient descent...
     """
@@ -44,10 +44,10 @@ class DVAEtrainingNormal(DVAEtraining):
 
     def train(
             self,
-            model: model.DVAEdatadeclaration
+            mod: model.DVAEmodel
     ):
 
-        nn = model.create_model()
+        loss_recorder, nn = mod.create_nn()
 
         optimizer = optim.Adam(nn.parameters(), lr=self.lr)
 
@@ -55,8 +55,6 @@ class DVAEtrainingNormal(DVAEtraining):
 
         for i, (x_mb, y_mb) in enumerate(train_loader):
             optimizer.zero_grad()
-
-            loss_recorder = loss.DVAEloss()
 
             loss_recorder.get_total_loss().backward()
             optimizer.step()
@@ -84,7 +82,7 @@ class DVAEtrainingOptimizeHyperparameters(DVAEtraining):
 
     def train(
             self,
-            model: model.DVAEdatadeclaration
+            mod: model.DVAEmodel
     ):
         # do grid optimization for the hyperparameters
-        self.training.train(model)
+        self.training.train(mod)

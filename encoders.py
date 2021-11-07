@@ -1,5 +1,5 @@
 import collections
-from typing import Callable, Iterable, List, Optional
+from typing import List
 
 import torch
 import torch.nn as nn
@@ -33,9 +33,9 @@ class DVAEencoderFC(model.DVAEstep):
         self._output = output
 
         # Check input size and ensure it is there. Then define the output
-        n_input = mod.env.get_input_dims(inputs)
-        n_covariates = mod.env.get_input_dims(covariates)
-        mod.env.define_output(output, n_output)
+        n_input = mod.env.get_variable_dims(inputs)
+        n_covariates = mod.env.get_variable_dims(covariates)
+        mod.env.define_variable(output, n_output)
 
         self.layer = FullyConnectedLayers(
             n_in=n_input,
@@ -53,10 +53,10 @@ class DVAEencoderFC(model.DVAEstep):
         """
         Perform the encoding
         """
-        x_input = env.get_input_tensor(self._inputs)
-        x_cov = env.get_input_tensor(self._covariates)
+        x_input = env.get_variable_as_tensor(self._inputs)
+        x_cov = env.get_variable_as_tensor(self._covariates)
         out = self.layer.forward(torch.cat(x_input, x_cov))
-        env.store_output(self._output, out)
+        env.store_variable(self._output, out)
 
 
 # #####################################################################################################

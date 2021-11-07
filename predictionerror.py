@@ -1,5 +1,3 @@
-from typing import List, Optional
-
 import abc
 
 import model
@@ -26,7 +24,7 @@ class DVAEpredictionError(metaclass=abc.ABCMeta):
             input_x,
             encoder_output,
             loss_recorder: model.DVAEloss
-            ):
+    ):
         pass
 
 
@@ -66,7 +64,7 @@ class DVAEpredictionErrorLogp(DVAEpredictionError):
 
     def __init__(self):
         """
-        Returns loss based on -log p, where p is based on a Distribution to be provided.
+        Returns loss based on -log(p), where p is based on a Distribution to be provided.
         This loss is generally suitable whenever the distribution of values is explicitly modelled
         """
         super().__init__()

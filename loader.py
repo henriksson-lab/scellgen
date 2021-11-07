@@ -3,13 +3,47 @@ from typing import List, Optional
 import torch
 from sklearn import preprocessing
 import pandas as pd
+import numpy as np
 
 import model
 
 ######################################################################################################
 ######################################################################################################
 ######################################################################################################
-import sizefactor
+
+def calculate_library_size_priors(
+        adata: anndata.AnnData,
+        batch=None
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Return a list of library log mean/var for each cell. If batch is set the variances are calculated
+    for each batch. Otherwise the mean/variance is for all the cells
+
+    Returns observed log counts, mean log counts, variance log counts
+    """
+    data = adata.X
+
+    sum_counts = data.sum(axis=1)
+    library_log_obs = np.ma.log(sum_counts)
+
+    if batch is None:
+        library_log_mean = library_log_obs * 0 + np.mean(library_log_obs).astype(np.float32)
+        library_log_var = library_log_obs * 0 + np.var(library_log_obs).astype(np.float32)
+    else:
+        # Calculate the variance for each batch and set the same variance for all the cells
+        library_log_var = library_log_obs * 0
+        library_log_mean = library_log_obs * 0
+        for batch_name in np.unique(adata.obs[batch].tolist()):
+            the_ind = adata.obs[batch] == batch_name
+            batch_log_means = library_log_obs[the_ind]
+            library_log_mean[the_ind] = np.mean(batch_log_means).astype(np.float32)
+            library_log_var[the_ind] = np.var(batch_log_means).astype(np.float32)
+
+    return library_log_obs, library_log_mean, library_log_var
+
+######################################################################################################
+######################################################################################################
+######################################################################################################
 
 
 class DVAEloaderCounts(model.DVAEloader):
@@ -36,10 +70,10 @@ class DVAEloaderCounts(model.DVAEloader):
         self._varname = adata_varname
         self._output = output
 
-        mod.env.define_output(output, mod.adata[adata_varname].shape[0])  # todo can be totally wrong
+        mod.env.define_variable(output, mod.adata[adata_varname].shape[0])  # todo can be totally wrong
 
         if sf_output is not None:
-            mod.env.define_output(sf_output, 3)
+            mod.env.define_variable(sf_output, 3)
 
 
     def get_dataset(self) -> torch.Dataset:
@@ -48,7 +82,7 @@ class DVAEloaderCounts(model.DVAEloader):
         """
 
         if self._sf_output is not None:
-            library_log_obs, library_log_mean, library_log_var = sizefactor.calculate_library_size_priors(
+            library_log_obs, library_log_mean, library_log_var = calculate_library_size_priors(
                 self.model,
                 self._sf_batch_variable)
 
@@ -101,7 +135,7 @@ class DVAEloaderObs(model.DVAEloader):
             self._value_mapping[one_cat] = lb
             self._num_dim_out += len(lb.transform(lb.classes_[0])[0])
 
-        mod.env.define_output(output, self._num_dim_out)
+        mod.env.define_variable(output, self._num_dim_out)
 
 
 
