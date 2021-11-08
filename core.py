@@ -151,7 +151,7 @@ class Environment:
         self._output_dims = dict()
         self._output_values = dict()
         self._output_samples = dict()
-        self.debug = True
+        self.debug = False
 
     def define_variable(
             self,

@@ -46,7 +46,7 @@ class DVAEtrainingBasic(DVAEtraining):
     def __init__(
             self,
             lr=1e-3,
-            num_epoch: int = 1
+            num_epoch: int = 100
     ):
         self.num_epoch = num_epoch
         self.lr = lr
@@ -60,16 +60,10 @@ class DVAEtrainingBasic(DVAEtraining):
         optimizer = optim.Adam(mod.parameters(), lr=self.lr)
         dataset = mod.get_dataset()
         dl = _dataloader.BatchSamplerLoader(dataset)
-        print("============ params")
-        #print(len(mod.parameters()))
 
         def count_parameters(model):
             return sum(p.numel() for p in model.parameters() if p.requires_grad)
-
         print("====== num params {}".format(count_parameters(mod)))
-        #for i, minibatch_data in enumerate(dl):
-        #    print(pms.summary(mod, minibatch_data, show_input=True))
-        #    break
 
         for cur_epoch in range(0,self.num_epoch):
             for i, minibatch_data in enumerate(dl):

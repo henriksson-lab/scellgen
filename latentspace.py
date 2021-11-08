@@ -127,8 +127,6 @@ class DVAElatentspaceLinear(core.DVAEstep):
         """
         # Split input vector into latent space parameters
         z_dim = int(self.n_input / 2)  # not sure why int needed, even if not float
-        print("====================")
-        print(z_dim)
         z_input = env.get_variable_as_tensor(self._inputs)
         z_mean, z_var = torch.split(z_input, [z_dim, z_dim], dim=1)
 
