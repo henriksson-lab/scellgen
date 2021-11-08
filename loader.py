@@ -70,12 +70,15 @@ class DVAEloaderCounts(core.DVAEloader):
         Empirical size factors will be computed if an output variable is specified, with batch-specific
         factors if an obs-column denoting batch is provided
         """
+        super().__init__(mod)
         self._sf_batch_variable = sf_batch_variable
         self._sf_output = sf_output
         self._varname = adata_varname
         self._output = output
         self.model = mod
-        super().__init__(mod)
+
+        # Add this loader to the model
+        mod.add_loader(self)
 
     def get_dataset(self) -> Dict[str, torch.utils.data.Dataset]:
         """
@@ -128,6 +131,7 @@ class DVAEloaderObs(core.DVAEloader):
         Loads data from the adata["obs"], including preprocessing as needed.
         This includes encoding of the categorial data especially
         """
+        super().__init__(mod)
         self.list_cat = list_cat
         self.list_cont = list_cont
         self._varname = adata_varname
@@ -152,7 +156,8 @@ class DVAEloaderObs(core.DVAEloader):
             self._value_mapping[one_cat] = lb
             self._num_dim_out += len(lb.transform(lb.classes_[0])[0])
 
-        super().__init__(mod)
+        # Add this loader to the model
+        mod.add_loader(self)
 
     def get_dataset(self) -> Dict[str, torch.utils.data.Dataset]:
         """
@@ -161,11 +166,12 @@ class DVAEloaderObs(core.DVAEloader):
         obs_df = self.model.adata[self._varname]
 
         list_x = []
-        for key, mapping in enumerate(self._value_mapping):
+        for key, mapping in self._value_mapping.items():
             x = np.array(mapping.transform(obs_df[key]))
             list_x.append(x)
 
-        df = np.concatenate(list_x, dim=1)  # problem - mixed types? keep as two separate lists? not quite possible
+        df = np.concatenate(list_x)  # problem - mixed types? keep as two separate lists? not quite possible
+        # todo concat the right orientation?
         return {
             self._output: _dataloader.AnnTorchDataset(np.float32, df)
         }

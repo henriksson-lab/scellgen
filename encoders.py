@@ -45,6 +45,9 @@ class DVAEencoderFC(core.DVAEstep):
             n_layers=n_layers
         )
 
+        # Add this computational step to the model
+        mod.add_step(self)
+
     def forward(
             self,
             env: core.Environment,

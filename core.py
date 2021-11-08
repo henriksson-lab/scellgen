@@ -112,7 +112,6 @@ class DVAEloader(metaclass=abc.ABCMeta):
         Loads data from the adata, including preprocessing as needed
         """
         self.model = model
-        model.add_loader(self)
 
     @abc.abstractmethod
     def define_outputs(
@@ -151,7 +150,7 @@ class Environment:
         _output_samples  Caches samples from _output_values, if it is a Distribution
         """
         self._model = model
-        self._outputs = dict()
+        self._output_dims = dict()
         self._output_values = dict()
         self._output_samples = dict()
 
@@ -163,20 +162,20 @@ class Environment:
         """
         Define an output from a step or loader
         """
-        if output_name in self._outputs:
+        if output_name in self._output_dims:
             raise "Tried to add output {} but it already existed from another step".format(output_name)
         else:
-            self._outputs[output_name] = dim
+            self._output_dims[output_name] = dim
 
-    def _get_variable_dims_of_one(self, one_input):
+    def _get_variable_dims_of_one(self, one_variable):
         """
         Compute the dimensions of one input
         """
-        if isinstance(one_input, str):
-            if one_input in self._output_values:
-                return len(self._output_values[one_input])
+        if isinstance(one_variable, str):
+            if one_variable in self._output_dims:
+                return self._output_dims[one_variable]
             else:
-                raise Exception("not stored: {}".format(one_input))
+                raise Exception("not stored: {}".format(one_variable))
         else:
             raise Exception("not implemented yet, subsets of inputs")
 
@@ -185,7 +184,7 @@ class Environment:
         Compute the dimensions of the given input
         """
         if inputs is None:
-            raise Exception("No inputs")
+            return 0
         if not isinstance(inputs, list):
             inputs = [inputs]
         return functools.reduce(operator.add, [self._get_variable_dims_of_one(i) for i in inputs], 0)
@@ -264,7 +263,7 @@ class DVAEmodel(torch.nn.Module):
         Add a computational step to perform
         """
         self._steps.append(step)
-        step.define_outputs()
+        step.define_outputs(self.env)
 
     def add_loader(
             self,

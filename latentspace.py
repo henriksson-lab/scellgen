@@ -45,6 +45,9 @@ class DVAElatentspacePeriodic(core.DVAEstep):
                 "Periodic latent spaces need an even number of inputs, representing mean and average. Got {}".
                 format(n_input))
 
+        # Add this computational step to the model
+        mod.add_step(self)
+
     def forward(
             self,
             env: core.Environment,
@@ -71,6 +74,19 @@ class DVAElatentspacePeriodic(core.DVAEstep):
         env.store_variable(self._output, q_z)
 
 
+    def define_outputs(
+            self,
+            env: core.Environment,
+    ):
+        """
+        Register the outputs and information about them
+        """
+        # For latent spaces, the input and output coordinate dimensions are generally the same
+        _z_dim = self.n_input
+        env.define_variable(self._output, _z_dim)  # todo should be half number outputs
+
+
+
 ######################################################################################################
 ######################################################################################################
 ######################################################################################################
@@ -93,16 +109,14 @@ class DVAElatentspaceLinear(core.DVAEstep):
         self._output = output
 
         # Check input size and ensure it is there
-        n_input = mod.env.get_variable_dims(inputs)
-
-        # For latent spaces, the input and output coordinate dimensions are generally the same
-        self._z_dim = n_input
-        mod.env.define_variable(output, self._z_dim)  # todo should be half number outputs
-
-        if not (n_input % 2 == 0 and n_input > 0):
+        self.n_input = mod.env.get_variable_dims(inputs)
+        if not (self.n_input % 2 == 0 and self.n_input > 0):
             raise Exception(
                 "Linear latent spaces need an even number of inputs, representing mean and average. Got {}".
-                format(n_input))
+                format(self.n_input))
+
+        # Add this computational step to the model
+        mod.add_step(self)
 
     def forward(
             self,
@@ -125,6 +139,19 @@ class DVAElatentspaceLinear(core.DVAEstep):
 
         loss_recorder.add_kl(torch.distributions.kl.kl_divergence(q_z, p_z).sum(-1).mean())
         env.store_variable(self._output, q_z)
+
+
+
+    def define_outputs(
+            self,
+            env: core.Environment,
+    ):
+        """
+        Register the outputs and information about them
+        """
+        # For latent spaces, the input and output coordinate dimensions are generally the same
+        _z_dim = self.n_input
+        env.define_variable(self._output, _z_dim)  # todo should be half number outputs
 
 
 ######################################################################################################
@@ -151,15 +178,15 @@ class DVAElatentspaceSizeFactor(core.DVAEstep):
         self._output = output
 
         # Check input size and ensure it is there
-        n_input = mod.env.get_variable_dims(inputs)
+        self.n_input = mod.env.get_variable_dims(inputs)
 
-        # For latent spaces, the input and output coordinate dimensions are generally the same
-        self._z_dim = n_input
-        mod.env.define_variable(output, self._z_dim)
-
-        if not (n_input != 2):
+        if not (self.n_input != 2):
             raise Exception(
-                "Size factor latent spaces should have 2 inputs, representing mean and average. Got {}".format(n_input))
+                "Size factor latent spaces should have 2 inputs, representing mean and average. Got {}".
+                    format(self.n_input))
+
+        # Add this computational step to the model
+        mod.add_step(self)
 
     def forward(
             self,
@@ -186,3 +213,15 @@ class DVAElatentspaceSizeFactor(core.DVAEstep):
 
         loss_recorder.add_kl(torch.distributions.kl.kl_divergence(q_z, p_z).sum(-1).mean())
         env.store_variable(self._output, q_z)
+
+    def define_outputs(
+            self,
+            env: core.Environment,
+    ):
+        """
+        Register the outputs and information about them
+        """
+        # For latent spaces, the input and output coordinate dimensions are generally the same
+        _z_dim = self.n_input
+        env.define_variable(self._output, _z_dim)  # todo should be half number outputs
+

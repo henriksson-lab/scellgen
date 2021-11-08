@@ -26,6 +26,7 @@ class DVAEdecoderRnaseq(core.DVAEstep):
             mod: core.DVAEmodel,
             inputs,  # complex object!
             gene_list: List[str],
+            input_sf: str = "X_sf",
             output: str = "rnaseq_count",
             covariates=None,  # complex object!
             n_hidden: int = 128,
@@ -42,27 +43,29 @@ class DVAEdecoderRnaseq(core.DVAEstep):
         self._covariates = covariates
         self._gene_list = gene_list
         self._output = output
-        n_output = len(gene_list)
+        self._n_output = len(gene_list)
 
         # Check input size and ensure it is there. Then define the output
         n_input = mod.env.get_variable_dims(inputs)
         n_covariates = mod.env.get_variable_dims(covariates)
-        mod.env.define_variable(output, n_output)
 
         self.dispersion = dispersion
         self.gene_likelihood = gene_likelihood
 
         # mean gamma
         self.px_scale_decoder = nn.Sequential(
-            nn.Linear(n_hidden, n_output),
+            nn.Linear(n_hidden, self._n_output),
             nn.Softmax(dim=-1),
         )
 
         # dispersion. no covariates handled yet
-        self.px_r_decoder = nn.Linear(n_hidden, n_output)
+        self.px_r_decoder = nn.Linear(n_hidden, self._n_output)
 
         # dropout
-        self.px_dropout_decoder = nn.Linear(n_hidden, n_output)
+        self.px_dropout_decoder = nn.Linear(n_hidden, self._n_output)
+
+        # Add this computational step to the model
+        mod.add_step(self)
 
     def forward(
             self,
@@ -101,3 +104,9 @@ class DVAEdecoderRnaseq(core.DVAEstep):
             raise "Unsupported gene likelihood {}".format(self.gene_likelihood)
 
         env.store_variable(self._output, count_distribution)
+
+    def define_outputs(
+            self,
+            env: core.Environment
+    ):
+        env.define_variable(self._output, self._n_output)
