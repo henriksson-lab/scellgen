@@ -89,7 +89,7 @@ class DVAEloaderCounts(core.DVAEloader):
         }
         if self._sf_output is not None:
             library_log_obs, library_log_mean, library_log_var = calculate_library_size_priors(
-                self.model,
+                self.model.adata,
                 self._sf_batch_variable)
             df = pd.DataFrame({
                 "obs": library_log_obs,

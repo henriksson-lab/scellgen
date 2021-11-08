@@ -4,6 +4,7 @@ from typing import List
 import torch
 import torch.nn as nn
 
+import _util
 import core
 
 
@@ -58,7 +59,7 @@ class DVAEencoderFC(core.DVAEstep):
         """
         x_input = env.get_variable_as_tensor(self._inputs)
         x_cov = env.get_variable_as_tensor(self._covariates)
-        out = self.layer.forward(torch.cat(x_input, x_cov))
+        out = self.layer.forward(_util.cat_torch_with_nones([x_input, x_cov]))
         env.store_variable(self._output, out)
 
     def define_outputs(

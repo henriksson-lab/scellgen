@@ -31,10 +31,13 @@ class AnnTorchDataset(Dataset):
         self.np_dtype = np_dtype
         self.data = data
 
-        if isinstance(data, h5py.Dataset) or isinstance(data, SparseDataset) or isinstance(data, pd.DataFrame):
+        if isinstance(data, h5py.Dataset) or \
+                isinstance(data, SparseDataset) or \
+                isinstance(data, pd.DataFrame) or \
+                isinstance(data, np.ndarray):  # todo may need to check dims of ndarray
             self._num_items = data.shape[0]
         else:
-            raise Exception("not implemented")
+            raise Exception("not implemented for type {}".format(type(data)))
         print("size {}".format(self._num_items))
 
     def __getitem__(
@@ -190,7 +193,7 @@ class BatchSamplerLoader(DataLoader):
 
         if indices is None:
             # Use all indices if not provided
-            indices = np.arange(len(self.dataset))
+            indices = np.arange(len(dataset))
         else:
             # If boolean list given, turn to absolute indices
             if hasattr(indices, "dtype") and indices.dtype is np.dtype("bool"):
@@ -230,7 +233,7 @@ class ConcatDictDataset(torch.utils.data.Dataset):
         self.datasets = datasets
 
     def __getitem__(self, i):
-        return dict([(key, d[i]) for (key, d) in enumerate(self.datasets)])
+        return dict([(key, d[i]) for (key, d) in self.datasets.items()])
 
     def __len__(self):
         return min(len(d) for d in self.datasets)

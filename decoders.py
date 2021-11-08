@@ -62,7 +62,7 @@ class DVAEdecoderRnaseq(core.DVAEstep):
         self.gene_likelihood = gene_likelihood
 
         # todo rho recoder
-        # todo n_inptu + n_covariates?
+        # todo n_input + n_covariates?
 
         # mean gamma
         self.px_scale_decoder = nn.Sequential(
@@ -84,10 +84,7 @@ class DVAEdecoderRnaseq(core.DVAEstep):
             env: core.Environment,
             loss_recorder: core.DVAEloss
     ):
-        """n="zinb")
-  File "/home/mahogny/javaproj/dvae/decoders.py", line 68, in __init__
-    nn.Linear(self.n_hidden, self._n_output),  # todo n_input?
-  File "/home/mahogny/miniconda3_38/lib/python3.8/site-packages/torch/n
+        """
         Perform the decoding into distributions representing RNAseq counts
         """
         library = env.get_variable_as_tensor(self._input_sf)

@@ -55,8 +55,7 @@ class DVAEtrainingBasic(DVAEtraining):
         do_optimize = True
         optimizer = optim.Adam(mod.parameters(), lr=self.lr)
         dataset = mod.get_dataset()
-
-        dl = _dataloader.BatchSamplerLoader()
+        dl = _dataloader.BatchSamplerLoader(dataset)
 
         for i, minibatch_data in enumerate(dl):
             optimizer.zero_grad()

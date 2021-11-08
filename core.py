@@ -197,7 +197,8 @@ class Environment:
 
         # Ensure the input is a list of items
         if inputs is None:
-            raise Exception("No inputs")
+            return None  # todo or return empty Tensor?
+            #raise Exception("No inputs")
         if not isinstance(inputs, list):
             inputs = [inputs]
 
@@ -231,8 +232,8 @@ class Environment:
         self._output_values[output] = out
 
     def clear_variables(self):
-        self._output_values = []
-        self._output_samples = []
+        self._output_values = {}
+        self._output_samples = {}
 
 
 ######################################################################################################
@@ -310,7 +311,7 @@ class DVAEmodel(torch.nn.Module):
         all_datasets = {}
         for one_loader in self._loaders:
             these_datasets = one_loader.get_dataset()
-            for (k,v) in these_datasets.items():
+            for (k, v) in these_datasets.items():
                 all_datasets[k] = v
                 #todo do a sanity check here
         return _dataloader.ConcatDictDataset(all_datasets)
