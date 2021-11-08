@@ -1,9 +1,4 @@
-from typing import List, Optional
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal
-
+from typing import List, Optional, Literal
 
 import torch
 import torch.nn as nn
