@@ -16,8 +16,10 @@ import _dataloader
 ######################################################################################################
 ######################################################################################################
 
+# todo not general enough! should apply to whatever matrix is passed
 def calculate_library_size_priors(
         adata: anndata.AnnData,
+        data,  # the matrix to work on
         batch=None
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
@@ -26,10 +28,10 @@ def calculate_library_size_priors(
 
     Returns observed log counts, mean log counts, variance log counts
     """
-    data = adata.X
-
+    # if np.any(data < 0):  # todo add this check again. CSR matrices cause problems
+    #    raise Exception("Calculating library size: Matrix contains values < 0. This function is meant for raw counts")
     sum_counts = data.sum(axis=1)
-    library_log_obs = np.ma.log(sum_counts)
+    library_log_obs = np.log(sum_counts+1)
 
     if batch is None:
         library_log_mean = library_log_obs * 0 + np.mean(library_log_obs).astype(np.float32)
@@ -43,6 +45,11 @@ def calculate_library_size_priors(
             batch_log_means = library_log_obs[the_ind]
             library_log_mean[the_ind] = np.mean(batch_log_means).astype(np.float32)
             library_log_var[the_ind] = np.var(batch_log_means).astype(np.float32)
+
+    # CSR matrix needs this
+    library_log_obs = np.array(library_log_obs.flatten()).flat
+    library_log_mean = np.array(library_log_mean.flatten()).flat
+    library_log_var = np.array(library_log_var.flatten()).flat
 
     return library_log_obs, library_log_mean, library_log_var
 
@@ -84,19 +91,21 @@ class DVAEloaderCounts(core.DVAEloader):
         """
         Get the count matrix as a Dataset object
         """
+        n_obs = self.model.adata.shape[0]
         datasets = {
-            self._output: _dataloader.AnnTorchDataset(np.int64, getattr(self.model.adata, self._varname))
+            self._output: _dataloader.AnnTorchDataset(n_obs, np.int64, getattr(self.model.adata, self._varname))
         }
         if self._sf_output is not None:
             library_log_obs, library_log_mean, library_log_var = calculate_library_size_priors(
                 self.model.adata,
+                getattr(self.model.adata, self._varname),
                 self._sf_batch_variable)
             df = pd.DataFrame({
                 "obs": library_log_obs,
                 "mean": library_log_mean,
                 "var": library_log_var
             })
-            datasets[self._sf_output] = _dataloader.AnnTorchDataset(np.int64, df)
+            datasets[self._sf_output] = _dataloader.AnnTorchDataset(n_obs, np.float, df)
         return datasets
 
     def define_outputs(
@@ -163,6 +172,7 @@ class DVAEloaderObs(core.DVAEloader):
         """
         Get the obs dataframe as Torch Datasets
         """
+        n_obs = self.model.adata.shape[0]
         obs_df = self.model.adata[self._varname]
 
         list_x = []
@@ -173,7 +183,7 @@ class DVAEloaderObs(core.DVAEloader):
         df = np.concatenate(list_x)  # problem - mixed types? keep as two separate lists? not quite possible
         # todo concat the right orientation?
         return {
-            self._output: _dataloader.AnnTorchDataset(np.float32, df)
+            self._output: _dataloader.AnnTorchDataset(n_obs, np.float32, df)
         }
 
     def define_outputs(

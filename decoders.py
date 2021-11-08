@@ -53,6 +53,7 @@ class DVAEdecoderRnaseq(core.DVAEstep):
         self._output = output
         self._n_output = len(gene_list)
         self.n_hidden = n_hidden
+        self._input_sf = input_sf
 
         # Check input size and ensure it is there. Then define the output
         self.n_input = mod.env.get_variable_dims(inputs)

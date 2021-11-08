@@ -59,7 +59,7 @@ class DVAEencoderFC(core.DVAEstep):
         """
         x_input = env.get_variable_as_tensor(self._inputs)
         x_cov = env.get_variable_as_tensor(self._covariates)
-        out = self.layer.forward(_util.cat_torch_with_nones([x_input, x_cov]))
+        out = self.layer.forward(_util.cat_tensor_with_nones([x_input, x_cov]))
         env.store_variable(self._output, out)
 
     def define_outputs(
@@ -96,12 +96,13 @@ class SequentialInject(nn.Module):
         self.inject_covariates = inject_covariates
 
     def forward(self, x):
-        x_main, x_cov = torch.split(x, [self.n_input, self.n_covariates])
+        x_main, x_cov = torch.split(x, [self.n_input, self.n_covariates], dim=1)
         for i, one_module in enumerate(self.modules):
+            print("################### {}".format(one_module))
             if i == 0 or self.inject_covariates:
-                x_main = one_module(torch.cat(x_main, x_cov))
+                x_main = one_module(_util.cat_tensor_with_nones([x_main, x_cov]))
             else:
-                x_main = one_module(torch.cat(x_main))
+                x_main = one_module(x_main)
         return x_main
 
 
@@ -170,7 +171,7 @@ class FullyConnectedLayers(nn.Module):
         layers_dim = [n_in] + (n_layers - 1) * [n_hidden] + [n_out]
 
         # Construct each layer
-        total_layers = collections.OrderedDict()
+        total_layers = []
         self.linear_layers = []
         for i, (one_n_in, one_n_out) in enumerate(zip(layers_dim[:-1], layers_dim[1:])):
 
@@ -188,17 +189,17 @@ class FullyConnectedLayers(nn.Module):
             # Normalize this layer such that convergence improves. Add activation function at the end
             if use_batch_norm:
                 # read https://arxiv.org/pdf/1502.03167.pdf
-                one_layer = nn.Sequential(one_layer, nn.BatchNorm1d(one_n_in, momentum=0.01, eps=0.001))
+                one_layer = nn.Sequential(one_layer, nn.BatchNorm1d(one_n_out, momentum=0.01, eps=0.001))
             if use_layer_norm:
                 # read https://arxiv.org/pdf/1607.06450.pdf
-                one_layer = nn.Sequential(one_layer, nn.LayerNorm(one_n_in, elementwise_affine=False))
+                one_layer = nn.Sequential(one_layer, nn.LayerNorm(one_n_out, elementwise_affine=False))
             if use_activation:
                 one_layer = nn.Sequential(one_layer, activation_fn())
             if dropout_rate > 0:
                 one_layer = nn.Sequential(one_layer, nn.Dropout(p=dropout_rate))
 
             # Add this layer to the big list
-            total_layers["Layer " + str(i)] = one_layer
+            total_layers.append(one_layer)
 
         # Assemble all layers into one neural net
         self.fc_layers = SequentialInject(total_layers, n_in, n_covariates, inject_covariates)

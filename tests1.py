@@ -25,13 +25,17 @@ class TestStringMethods(unittest.TestCase):
 
         # encoder layer
         encoders.DVAEencoderFC(m, inputs="X", output="enc_rna", n_output=10)
+        encoders.DVAEencoderFC(m, inputs="X", output="enc_sf", n_output=2)
 
         # latent space
-        latentspace.DVAElatentspaceSizeFactor(m, inputs="X_sf", output="sf_rna")
+        latentspace.DVAElatentspaceSizeFactor(m, inputs="enc_sf", sf_empirical="X_sf", output="sf_rna")
         latentspace.DVAElatentspaceLinear(m, inputs="enc_rna", output="z")
 
         # decoder layer
         decoders.DVAEdecoderRnaseq(m, inputs="z", input_sf="sf_rna", dispersion="zinb")
+
+        m.env.print_variable_defs()
+
 
         trainer = training.DVAEtrainingBasic()
         trainer.train(m)

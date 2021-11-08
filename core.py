@@ -8,11 +8,11 @@ import anndata
 import torch
 from torch.distributions import Distribution
 
-
 ######################################################################################################
 ######################################################################################################
 ######################################################################################################
 import _dataloader
+import _util
 
 
 class DVAEloss():
@@ -97,7 +97,6 @@ class DVAEstep(torch.nn.Module, metaclass=abc.ABCMeta):
         pass
 
 
-
 ######################################################################################################
 ######################################################################################################
 ######################################################################################################
@@ -122,7 +121,6 @@ class DVAEloader(metaclass=abc.ABCMeta):
         Register the outputs and information about them
         """
         pass
-
 
     @abc.abstractmethod
     def get_dataset(self) -> Dict[str, torch.utils.data.Dataset]:
@@ -153,6 +151,7 @@ class Environment:
         self._output_dims = dict()
         self._output_values = dict()
         self._output_samples = dict()
+        self.debug = True
 
     def define_variable(
             self,
@@ -198,7 +197,7 @@ class Environment:
         # Ensure the input is a list of items
         if inputs is None:
             return None  # todo or return empty Tensor?
-            #raise Exception("No inputs")
+            # raise Exception("No inputs")
         if not isinstance(inputs, list):
             inputs = [inputs]
 
@@ -219,7 +218,7 @@ class Environment:
                 all_values.append(value)
             else:
                 raise Exception("Unknown type of variable {}".format(one_input))
-        return torch.cat(all_values)
+        return _util.cat_tensor_with_nones(all_values).type(torch.FloatTensor)  # todo nasty type cast. better way?
 
     def store_variable(
             self,
@@ -230,10 +229,20 @@ class Environment:
         Store one value in the environment. Can be a Tensor or Distribution
         """
         self._output_values[output] = out
+        if self.debug:
+            if hasattr(out, "shape"):
+                print("Storing variable {}, {}".format(output, out.shape))
+            else:
+                print("Storing variable {}, {}".format(output, type(out)))
 
     def clear_variables(self):
         self._output_values = {}
         self._output_samples = {}
+
+    def print_variable_defs(self):
+        print("------------------------ sizes of variables ------------------")
+        print(self._output_dims)
+        print("--------------------------------------------------------------")
 
 
 ######################################################################################################
@@ -244,7 +253,7 @@ class Environment:
 class DVAEmodel(torch.nn.Module):
 
     def __init__(
-            self, 
+            self,
             adata: anndata.AnnData
     ):
         """
@@ -313,5 +322,5 @@ class DVAEmodel(torch.nn.Module):
             these_datasets = one_loader.get_dataset()
             for (k, v) in these_datasets.items():
                 all_datasets[k] = v
-                #todo do a sanity check here
+                # todo do a sanity check here
         return _dataloader.ConcatDictDataset(all_datasets)

@@ -60,7 +60,7 @@ class DVAEtrainingBasic(DVAEtraining):
         for i, minibatch_data in enumerate(dl):
             optimizer.zero_grad()
 
-            print("round {}".format(dl))
+            print("training {} round {}".format(self.__class__.__name__, i))
 
             loss_recorder = mod.forward(minibatch_data)
 

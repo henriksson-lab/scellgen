@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from math import ceil
 import copy
-
+import scipy
 
 
 # aim to replace https://docs.scvi-tools.org/en/0.8.0/api/reference/scvi.data.setup_anndata.html
@@ -19,8 +19,9 @@ class AnnTorchDataset(Dataset):
 
     def __init__(
             self,
-            np_dtype, # : Union[np.float32, np.int64],
-            data: Union[anndata.AnnData, pd.DataFrame, h5py.Dataset, SparseDataset]
+            num_items,
+            np_dtype,  # : Union[np.float32, np.int64],
+            data: Union[anndata.AnnData, pd.DataFrame, h5py.Dataset, SparseDataset, scipy.sparse.csr.csr_matrix]
     ):
         """
         Dataset capable of using AnnData objects as input; but also Pandas dataframes and Numpy matrices
@@ -30,15 +31,17 @@ class AnnTorchDataset(Dataset):
         """
         self.np_dtype = np_dtype
         self.data = data
+        self._num_items = num_items
 
-        if isinstance(data, h5py.Dataset) or \
-                isinstance(data, SparseDataset) or \
-                isinstance(data, pd.DataFrame) or \
-                isinstance(data, np.ndarray):  # todo may need to check dims of ndarray
-            self._num_items = data.shape[0]
-        else:
-            raise Exception("not implemented for type {}".format(type(data)))
-        print("size {}".format(self._num_items))
+        # or scipy.sparse.csr.csr_matrix
+        #if isinstance(data, h5py.Dataset) or \
+        #        isinstance(data, SparseDataset) or \
+        #        isinstance(data, pd.DataFrame) or \
+        #        isinstance(data, np.ndarray):  # todo may need to check dims of ndarray
+        #    # ok!
+        #    pass
+        #else:
+        #    raise Exception("not implemented for type {}".format(type(data)))
 
     def __getitem__(
             self,
@@ -211,8 +214,6 @@ class BatchSamplerLoader(DataLoader):
         super().__init__(dataset, **self.data_loader_kwargs)
 
 
-
-
 ######################################################################################################
 ######################################################################################################
 ######################################################################################################
@@ -236,8 +237,7 @@ class ConcatDictDataset(torch.utils.data.Dataset):
         return dict([(key, d[i]) for (key, d) in self.datasets.items()])
 
     def __len__(self):
-        return min(len(d) for d in self.datasets)
-
+        return min(len(d) for d in self.datasets.values())
 
 # Tensors are Dataset instances already. They are created this way
 # torch.from_numpy(datamat_withz_zmean.detach().cpu().numpy()).to(device)

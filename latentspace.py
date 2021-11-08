@@ -37,13 +37,13 @@ class DVAElatentspacePeriodic(core.DVAEstep):
         n_input = mod.env.get_variable_dims(inputs)
 
         # For latent spaces, the input and output coordinate dimensions are generally the same
-        self._z_dim = n_input
-        mod.env.define_variable(output, self._z_dim) # todo should be half number outputs
+        self._z_dim = n_input / 2
+        mod.env.define_variable(output, n_input)
 
         if not (n_input % 2 == 0 and n_input > 0):
             raise Exception(
                 "Periodic latent spaces need an even number of inputs, representing mean and average. Got {}".
-                format(n_input))
+                    format(n_input))
 
         # Add this computational step to the model
         mod.add_step(self)
@@ -58,7 +58,8 @@ class DVAElatentspacePeriodic(core.DVAEstep):
         """
         # Split input vector into latent space parameters
         z_dim = self._z_dim
-        z_mean, z_var = torch.split([z_dim, z_dim])
+        z_input = env.get_variable_as_tensor(self._inputs)
+        z_mean, z_var = torch.split(z_input, [z_dim, z_dim], dim=1)
 
         # compute mean and concentration of the von Mises-Fisher
         z_mean = z_mean / z_mean.norm(dim=-1, keepdim=True)
@@ -73,7 +74,6 @@ class DVAElatentspacePeriodic(core.DVAEstep):
 
         env.store_variable(self._output, q_z)
 
-
     def define_outputs(
             self,
             env: core.Environment,
@@ -84,7 +84,6 @@ class DVAElatentspacePeriodic(core.DVAEstep):
         # For latent spaces, the input and output coordinate dimensions are generally the same
         _z_dim = self.n_input
         env.define_variable(self._output, _z_dim)  # todo should be half number outputs
-
 
 
 ######################################################################################################
@@ -113,7 +112,7 @@ class DVAElatentspaceLinear(core.DVAEstep):
         if not (self.n_input % 2 == 0 and self.n_input > 0):
             raise Exception(
                 "Linear latent spaces need an even number of inputs, representing mean and average. Got {}".
-                format(self.n_input))
+                    format(self.n_input))
 
         # Add this computational step to the model
         mod.add_step(self)
@@ -127,8 +126,11 @@ class DVAElatentspaceLinear(core.DVAEstep):
         Perform the reparameterization
         """
         # Split input vector into latent space parameters
-        z_dim = self.n_dim_in
-        z_mean, z_var = torch.split([z_dim, z_dim])
+        z_dim = int(self.n_input / 2)  # not sure why int needed, even if not float
+        print("====================")
+        print(z_dim)
+        z_input = env.get_variable_as_tensor(self._inputs)
+        z_mean, z_var = torch.split(z_input, [z_dim, z_dim], dim=1)
 
         # ensure positive variance. use exp instead?
         z_var = torch.nn.functional.softplus(z_var)
@@ -139,8 +141,6 @@ class DVAElatentspaceLinear(core.DVAEstep):
 
         loss_recorder.add_kl(torch.distributions.kl.kl_divergence(q_z, p_z).sum(-1).mean())
         env.store_variable(self._output, q_z)
-
-
 
     def define_outputs(
             self,
@@ -179,11 +179,17 @@ class DVAElatentspaceSizeFactor(core.DVAEstep):
 
         # Check input size and ensure it is there
         self.n_input = mod.env.get_variable_dims(inputs)
+        self.n_input_sf = mod.env.get_variable_dims(sf_empirical)
 
-        if not (self.n_input != 2):
+        if self.n_input != 2:
             raise Exception(
                 "Size factor latent spaces should have 2 inputs, representing mean and average. Got {}".
                     format(self.n_input))
+
+        if self.n_input_sf != 3:
+            raise Exception(
+                "Size factor latent spaces should have a dim=3 sf prior, representing observed, mean and average. Got {}".
+                    format(self.n_input_sf))
 
         # Add this computational step to the model
         mod.add_step(self)
@@ -197,15 +203,15 @@ class DVAElatentspaceSizeFactor(core.DVAEstep):
         Perform the reparameterization
         """
         # Split input vector into latent space parameters
-        z_dim = self.n_dim_in
-        z_mean, z_var = torch.split([z_dim, z_dim])
+        z_input = env.get_variable_as_tensor(self._inputs)
+        z_mean, z_var = torch.split(z_input, [1, 1], dim=1)
 
-        # ensure positive variance. use exp instead?
-        z_var = torch.nn.functional.softplus(z_var)
+        # ensure positive variance
+        z_var = torch.exp(z_var)
 
         # Obtain empirical distributions of sizes
         sf_empirical = env.get_variable_as_tensor(self.sf_empirical)
-        sf_empirical_mean, sf_empirical_var = torch.split(sf_empirical, [1,1])
+        sf_observed, sf_empirical_mean, sf_empirical_var = torch.split(sf_empirical, [1, 1, 1], dim=1)
 
         # The distributions to compare
         q_z = torch.distributions.normal.Normal(z_mean, z_var)
@@ -222,6 +228,4 @@ class DVAElatentspaceSizeFactor(core.DVAEstep):
         Register the outputs and information about them
         """
         # For latent spaces, the input and output coordinate dimensions are generally the same
-        _z_dim = self.n_input
-        env.define_variable(self._output, _z_dim)  # todo should be half number outputs
-
+        env.define_variable(self._output, self.n_input)
