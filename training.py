@@ -2,20 +2,27 @@ import _dataloader
 import core
 import abc
 
-import pytorch_model_summary as pms
-
-
 import torch
 import torch.optim as optim
 import torch.utils.data
 
 
 def get_torch_device():
-    print(torch.cuda.is_available())
+    """
+    Get a device - GPU if possible
+    """
+    print("CUDA is available: {}".format(torch.cuda.is_available()))
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     #device = torch.device("cpu")
-    print(device)
+    print("Chose device: ".format(device))
     return device
+
+
+def count_parameters(model):
+    """
+    Count the number of optimizable parameters. Note that this function might double count!
+    """
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
 class DVAEtraining(metaclass=abc.ABCMeta):
@@ -39,15 +46,15 @@ class DVAEtraining(metaclass=abc.ABCMeta):
 
 
 class DVAEtrainingBasic(DVAEtraining):
-    """
-    Your normal for-loop doing gradient descent...
-    """
 
     def __init__(
             self,
             lr=1e-3,
             num_epoch: int = 100
     ):
+        """
+        Your normal for-loop doing gradient descent...
+        """
         self.num_epoch = num_epoch
         self.lr = lr
 
@@ -61,8 +68,6 @@ class DVAEtrainingBasic(DVAEtraining):
         dataset = mod.get_dataset()
         dl = _dataloader.BatchSamplerLoader(dataset)
 
-        def count_parameters(model):
-            return sum(p.numel() for p in model.parameters() if p.requires_grad)
         print("====== num params {}".format(count_parameters(mod)))
 
         for cur_epoch in range(0,self.num_epoch):
@@ -89,16 +94,16 @@ class DVAEtrainingBasic(DVAEtraining):
 ######################################################################################################
 
 class DVAEtrainingOptimizeHyperparameters(DVAEtraining):
-    """
-    This optimizer will find suitable hyperparameters by cross validation.
-    Inside it will run another optimizer for each hyperparameter value
-    """
 
     def __init__(
             self,
             training: DVAEtraining,
             percent_training: float
     ):
+        """
+        This optimizer will find suitable hyperparameters by cross validation.
+        Inside it will run another optimizer for each hyperparameter value
+        """
         self.training = training
         self.percent_training = percent_training
         # to dictionary of hyper parameters
