@@ -105,7 +105,7 @@ class DVAEloaderCounts(core.DVAEloader):
                 "mean": library_log_mean,
                 "var": library_log_var
             })
-            datasets[self._sf_output] = _dataloader.AnnTorchDataset(n_obs, np.float, df)
+            datasets[self._sf_output] = _dataloader.AnnTorchDataset(n_obs, float, df)
         return datasets
 
     def define_outputs(

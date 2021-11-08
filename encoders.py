@@ -98,7 +98,6 @@ class SequentialInject(nn.Module):
     def forward(self, x):
         x_main, x_cov = torch.split(x, [self.n_input, self.n_covariates], dim=1)
         for i, one_module in enumerate(self.modules):
-            print("################### {}".format(one_module))
             if i == 0 or self.inject_covariates:
                 x_main = one_module(_util.cat_tensor_with_nones([x_main, x_cov]))
             else:

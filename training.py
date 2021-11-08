@@ -2,6 +2,8 @@ import _dataloader
 import core
 import abc
 
+import pytorch_model_summary as pms
+
 
 import torch
 import torch.optim as optim
@@ -43,10 +45,12 @@ class DVAEtrainingBasic(DVAEtraining):
 
     def __init__(
             self,
-            lr=1e-3
-            # todo learning rate. num epochs. what else?
+            lr=1e-3,
+            num_epoch: int = 1
     ):
+        self.num_epoch = num_epoch
         self.lr = lr
+
 
     def train(
             self,
@@ -56,18 +60,31 @@ class DVAEtrainingBasic(DVAEtraining):
         optimizer = optim.Adam(mod.parameters(), lr=self.lr)
         dataset = mod.get_dataset()
         dl = _dataloader.BatchSamplerLoader(dataset)
+        print("============ params")
+        #print(len(mod.parameters()))
 
-        for i, minibatch_data in enumerate(dl):
-            optimizer.zero_grad()
+        def count_parameters(model):
+            return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-            print("training {} round {}".format(self.__class__.__name__, i))
+        print("====== num params {}".format(count_parameters(mod)))
+        #for i, minibatch_data in enumerate(dl):
+        #    print(pms.summary(mod, minibatch_data, show_input=True))
+        #    break
 
-            loss_recorder = mod.forward(minibatch_data)
+        for cur_epoch in range(0,self.num_epoch):
+            for i, minibatch_data in enumerate(dl):
+                optimizer.zero_grad()
 
-            if do_optimize:
-                # Calculate gradients and improve values accordingly
-                loss_recorder.get_total_loss().backward()
-                optimizer.step()
+                print("training {} epoch {} batch {} ".format(self.__class__.__name__, cur_epoch, i))
+
+                loss_recorder = mod.forward(minibatch_data)
+                total_loss = loss_recorder.get_total_loss()
+                print(total_loss)
+
+                if do_optimize:
+                    # Calculate gradients and improve values accordingly
+                    total_loss.backward()
+                    optimizer.step()
 
 
 

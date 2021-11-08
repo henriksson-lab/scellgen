@@ -4,6 +4,8 @@ import torch
 import torch.nn as nn
 from torch.distributions import Normal, Poisson, Distribution
 
+import _util
+import encoders
 from fromscvi import ZeroInflatedNegativeBinomial, NegativeBinomial
 
 import core
@@ -31,7 +33,7 @@ class DVAEdecoderRnaseq(core.DVAEstep):
             covariates=None,  # complex object!
             n_hidden: int = 128,
 
-            dispersion: Literal["gene", "gene-batch", "gene-label", "gene-cell"] = "gene",
+            # dispersion: Literal["gene", "gene-batch", "gene-label", "gene-cell"] = "gene",
             gene_likelihood: Literal["zinb", "nb", "poisson"] = "zinb",
 
     ):
@@ -42,10 +44,8 @@ class DVAEdecoderRnaseq(core.DVAEstep):
 
         # Generate all genes if not specified
         if gene_list is None:
-            # todo
-            gene_list = [] # todo
-            pass
-
+            # todo need a way of storing gene names
+            gene_list = mod.adata.var.index.tolist()
 
         self._inputs = inputs
         self._covariates = covariates
@@ -59,23 +59,29 @@ class DVAEdecoderRnaseq(core.DVAEstep):
         self.n_input = mod.env.get_variable_dims(inputs)
         self.n_covariates = mod.env.get_variable_dims(covariates)
 
-        self.dispersion = dispersion
+        # self.dispersion = dispersion
         self.gene_likelihood = gene_likelihood
 
-        # todo rho recoder
-        # todo n_input + n_covariates?
+        # todo need one rho for every gene!
+        # todo rho should be shape n_obs x n_gene
 
-        # mean gamma
-        self.px_scale_decoder = nn.Sequential(
-            nn.Linear(self.n_hidden, self._n_output),  # todo n_input?
+        self.px_decoder = encoders.FullyConnectedLayers(
+            n_in=self.n_input,
+            n_out=self.n_hidden,
+            n_covariates=self.n_covariates
+        )
+
+        # mean gamma - rho in the SCVI paper. softmax makes the output clamp in [0,1]
+        self.rho_decoder = nn.Sequential(
+            nn.Linear(self.n_hidden, self._n_output),
             nn.Softmax(dim=-1),
         )
 
         # dispersion. no covariates handled yet
-        self.px_r_decoder = nn.Linear(n_hidden, self._n_output)
+        self.px_r_decoder = nn.Linear(self.n_hidden, self._n_output)
 
         # dropout
-        self.px_dropout_decoder = nn.Linear(n_hidden, self._n_output)
+        self.px_dropout_decoder = nn.Linear(self.n_hidden, self._n_output)
 
         # Add this computational step to the model
         mod.add_step(self)
@@ -88,23 +94,28 @@ class DVAEdecoderRnaseq(core.DVAEstep):
         """
         Perform the decoding into distributions representing RNAseq counts
         """
-        library = env.get_variable_as_tensor(self._input_sf)
         z = env.get_variable_as_tensor(self._inputs)
         cov = env.get_variable_as_tensor(self._covariates)
+
+        # Take the library scale back to normal non-log scale
+        library = torch.exp(env.get_variable_as_tensor(self._input_sf))
+
+        # print(_util.cat_tensor_with_nones([z, cov]))
+
+        px = self.px_decoder(_util.cat_tensor_with_nones([z, cov]))
 
         ############################ https://github.com/YosefLab/scvi-tools/blob/9855238ae13543aefd212716f4731446bb2922bb/scvi/nn/_base_components.py
 
         # px is rho in https://www.nature.com/articles/s41592-018-0229-2
-        rho = self.rho_decoder(torch.cat(z, cov))
-        px_scale = self.px_scale_decoder(rho)
-        px_rate = torch.exp(library) * px_scale
-        px_dropout = self.px_dropout_decoder(rho)
+        rho = self.rho_decoder(px)
+        px_rate = library * rho
+        px_dropout = self.px_dropout_decoder(px)  # f_h in the SCVI paper
 
         ############################
         # self.dispersion is a messy parameter. we could instead have a separate
         # cov variable that is fed into this neural network. then we would support
         # all cases in one mechanism
-        px_r = torch.exp(self.px_r_decoder(rho))
+        px_r = torch.exp(self.px_r_decoder(px))
 
         # Store the fitted distribution of gene counts
         if self.gene_likelihood == "zinb":

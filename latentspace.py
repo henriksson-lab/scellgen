@@ -83,7 +83,7 @@ class DVAElatentspacePeriodic(core.DVAEstep):
         """
         # For latent spaces, the input and output coordinate dimensions are generally the same
         _z_dim = self.n_input
-        env.define_variable(self._output, _z_dim)  # todo should be half number outputs
+        env.define_variable(self._output, _z_dim)  # todo here I think the same num dims?
 
 
 ######################################################################################################
@@ -149,9 +149,9 @@ class DVAElatentspaceLinear(core.DVAEstep):
         """
         Register the outputs and information about them
         """
-        # For latent spaces, the input and output coordinate dimensions are generally the same
-        _z_dim = self.n_input
-        env.define_variable(self._output, _z_dim)  # todo should be half number outputs
+        # For normal latent spaces, there is one output coordinate given input mu, var
+        _z_dim = int(self.n_input / 2)
+        env.define_variable(self._output, _z_dim)
 
 
 ######################################################################################################
@@ -228,4 +228,4 @@ class DVAElatentspaceSizeFactor(core.DVAEstep):
         Register the outputs and information about them
         """
         # For latent spaces, the input and output coordinate dimensions are generally the same
-        env.define_variable(self._output, self.n_input)
+        env.define_variable(self._output, 1)
