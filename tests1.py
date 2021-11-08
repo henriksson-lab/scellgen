@@ -31,7 +31,7 @@ class TestStringMethods(unittest.TestCase):
         latentspace.DVAElatentspaceLinear(m, inputs="enc_rna", output="z")
 
         # decoder layer
-        decoders.DVAEdecoderRnaseq(m, inputs="z", sf="sf_rna", dispersion="zinb")
+        decoders.DVAEdecoderRnaseq(m, inputs="z", input_sf="sf_rna", dispersion="zinb")
 
         trainer = training.DVAEtrainingBasic()
         trainer.train(m)

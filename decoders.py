@@ -25,7 +25,7 @@ class DVAEdecoderRnaseq(core.DVAEstep):
             self,
             mod: core.DVAEmodel,
             inputs,  # complex object!
-            gene_list: List[str],
+            gene_list: List[str] = None,
             input_sf: str = "X_sf",
             output: str = "rnaseq_count",
             covariates=None,  # complex object!
@@ -39,22 +39,34 @@ class DVAEdecoderRnaseq(core.DVAEstep):
         Generative function for RNAseq data according to the SCVI model
         """
         super().__init__(mod)
+
+        # Generate all genes if not specified
+        if gene_list is None:
+            # todo
+            gene_list = [] # todo
+            pass
+
+
         self._inputs = inputs
         self._covariates = covariates
         self._gene_list = gene_list
         self._output = output
         self._n_output = len(gene_list)
+        self.n_hidden = n_hidden
 
         # Check input size and ensure it is there. Then define the output
-        n_input = mod.env.get_variable_dims(inputs)
-        n_covariates = mod.env.get_variable_dims(covariates)
+        self.n_input = mod.env.get_variable_dims(inputs)
+        self.n_covariates = mod.env.get_variable_dims(covariates)
 
         self.dispersion = dispersion
         self.gene_likelihood = gene_likelihood
 
+        # todo rho recoder
+        # todo n_inptu + n_covariates?
+
         # mean gamma
         self.px_scale_decoder = nn.Sequential(
-            nn.Linear(n_hidden, self._n_output),
+            nn.Linear(self.n_hidden, self._n_output),  # todo n_input?
             nn.Softmax(dim=-1),
         )
 
@@ -72,7 +84,10 @@ class DVAEdecoderRnaseq(core.DVAEstep):
             env: core.Environment,
             loss_recorder: core.DVAEloss
     ):
-        """
+        """n="zinb")
+  File "/home/mahogny/javaproj/dvae/decoders.py", line 68, in __init__
+    nn.Linear(self.n_hidden, self._n_output),  # todo n_input?
+  File "/home/mahogny/miniconda3_38/lib/python3.8/site-packages/torch/n
         Perform the decoding into distributions representing RNAseq counts
         """
         library = env.get_variable_as_tensor(self._input_sf)
