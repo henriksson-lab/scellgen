@@ -78,5 +78,5 @@ class DVAEpredictionErrorLogp(DVAEpredictionError):
         """
         Compute the loss
         """
-        loss = -encoder_output.log_prob(input_x).sum(dim=-1)
+        loss = -encoder_output.log_prob(input_x).sum(-1).mean()
         loss_recorder.add_reconstruction_loss(loss)

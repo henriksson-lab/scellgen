@@ -6,6 +6,7 @@ from torch.distributions import Normal, Poisson, Distribution
 
 import _util
 import encoders
+import predictionerror
 from fromscvi import ZeroInflatedNegativeBinomial, NegativeBinomial
 
 import core
@@ -16,6 +17,86 @@ import core
 ######################################################################################################
 
 # todo a decoder into binary categories. binary cross entropy
+
+
+######################################################################################################
+######################################################################################################
+######################################################################################################
+
+# todo a decoder into linear values. L2 loss
+
+class DVAEdecoderLinear(core.DVAEstep):
+    def __init__(
+            self,
+            mod: core.DVAEmodel,
+            inputs,  # complex object!
+            gene_list: List[str] = None,
+            output: str = "rnaseq_count",
+            covariates=None,  # complex object!
+            n_hidden: int = 128
+    ):
+        """
+        Generative function for various continuous data
+        """
+        super().__init__(mod)
+
+        # Generate all genes if not specified
+        if gene_list is None:
+            # todo need a way of storing gene names
+            gene_list = mod.adata.var.index.tolist()
+
+        self._inputs = inputs
+        self._covariates = covariates
+        self._gene_list = gene_list
+        self._output = output
+        self._n_output = len(gene_list)
+        self._n_hidden = n_hidden
+
+        # Check input size and ensure it is there. Then define the output
+        self._n_input = mod.env.define_variable_inputs(self, inputs)
+        self._n_covariates = mod.env.define_variable_inputs(self, covariates)
+
+        self.px_decoder = encoders.FullyConnectedLayers(
+            n_in=self._n_input,
+            n_hidden=self._n_hidden,
+            n_out=self._n_output,
+            n_covariates=self._n_covariates
+        )
+
+        # Add this computational step to the model
+        mod.add_step(self)
+
+    def forward(
+            self,
+            env: core.Environment,
+            loss_recorder: core.DVAEloss
+    ):
+        """
+        Perform the decoding into distributions representing various continuous data
+        """
+        z = env.get_variable_as_tensor(self._inputs)
+        cov = env.get_variable_as_tensor(self._covariates)
+
+        px = self.px_decoder.forward(_util.cat_tensor_with_nones([z, cov]))
+
+        # Store the fitted distribution of gene counts
+        count_distribution = Normal(px, torch.ones_like(px)*100)
+        env.store_variable(self._output, count_distribution)
+
+        # Add reconstruction error. Should it really be done here? todo
+        gene_counts = env.get_variable_as_tensor("X")
+        predictionerror.DVAEpredictionErrorLogp().store_loss(
+            gene_counts,
+            count_distribution,
+            loss_recorder
+        )
+
+
+    def define_outputs(
+            self,
+            env: core.Environment
+    ):
+        env.define_variable_output(self, self._output, self._n_output)
 
 
 ######################################################################################################
@@ -52,33 +133,33 @@ class DVAEdecoderRnaseq(core.DVAEstep):
         self._gene_list = gene_list
         self._output = output
         self._n_output = len(gene_list)
-        self.n_hidden = n_hidden
+        self._n_hidden = n_hidden
         self._input_sf = input_sf
 
         # Check input size and ensure it is there. Then define the output
-        self.n_input = mod.env.define_variable_inputs(self, inputs)
-        self.n_covariates = mod.env.define_variable_inputs(self, covariates)
+        self._n_input = mod.env.define_variable_inputs(self, inputs)
+        self._n_covariates = mod.env.define_variable_inputs(self, covariates)
 
         # self.dispersion = dispersion
-        self.gene_likelihood = gene_likelihood
+        self._gene_likelihood = gene_likelihood
 
         self.px_decoder = encoders.FullyConnectedLayers(
-            n_in=self.n_input,
-            n_out=self.n_hidden,
-            n_covariates=self.n_covariates
+            n_in=self._n_input,
+            n_out=self._n_hidden,
+            n_covariates=self._n_covariates
         )
 
         # mean gamma - rho in the SCVI paper. softmax makes the output clamp in [0,1]
         self.rho_decoder = nn.Sequential(
-            nn.Linear(self.n_hidden, self._n_output),
+            nn.Linear(self._n_hidden, self._n_output),
             nn.Softmax(dim=-1),
         )
 
         # dispersion. no covariates handled yet
-        self.px_r_decoder = nn.Linear(self.n_hidden, self._n_output)
+        self.px_r_decoder = nn.Linear(self._n_hidden, self._n_output)
 
         # dropout
-        self.px_dropout_decoder = nn.Linear(self.n_hidden, self._n_output)
+        self.px_dropout_decoder = nn.Linear(self._n_hidden, self._n_output)
 
         # Add this computational step to the model
         mod.add_step(self)
@@ -99,7 +180,7 @@ class DVAEdecoderRnaseq(core.DVAEstep):
 
         # print(_util.cat_tensor_with_nones([z, cov]))
 
-        px = self.px_decoder(_util.cat_tensor_with_nones([z, cov]))
+        px = self.px_decoder.forward(_util.cat_tensor_with_nones([z, cov]))
 
         ############################ https://github.com/YosefLab/scvi-tools/blob/9855238ae13543aefd212716f4731446bb2922bb/scvi/nn/_base_components.py
 
@@ -115,16 +196,23 @@ class DVAEdecoderRnaseq(core.DVAEstep):
         px_r = torch.exp(self.px_r_decoder(px))
 
         # Store the fitted distribution of gene counts
-        if self.gene_likelihood == "zinb":
+        if self._gene_likelihood == "zinb":
             count_distribution = ZeroInflatedNegativeBinomial(mu=px_rate, theta=px_r, zi_logits=px_dropout)
-        elif self.gene_likelihood == "nb":
+        elif self._gene_likelihood == "nb":
             count_distribution = NegativeBinomial(mu=px_rate, theta=px_r)
-        elif self.gene_likelihood == "poisson":
+        elif self._gene_likelihood == "poisson":
             count_distribution = Poisson(px_rate)
         else:
-            raise "Unsupported gene likelihood {}".format(self.gene_likelihood)
-
+            raise "Unsupported gene likelihood {}".format(self._gene_likelihood)
         env.store_variable(self._output, count_distribution)
+
+        # Add reconstruction error. Should it really be done here? todo
+        gene_counts = env.get_variable_as_tensor("X")
+        predictionerror.DVAEpredictionErrorLogp().store_loss(
+            gene_counts,
+            count_distribution,
+            loss_recorder
+        )
 
     def define_outputs(
             self,
