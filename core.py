@@ -8,6 +8,9 @@ import anndata
 import torch
 from torch.distributions import Distribution
 
+from matplotlib import pyplot as plt
+
+import networkx as nx
 ######################################################################################################
 ######################################################################################################
 ######################################################################################################
@@ -278,6 +281,97 @@ class Environment:
 
         print(kn(self._variable_source))
         print("-----------------------------------------------------------------")
+
+    def call_graph(self):
+        def plot_call_graph(x_variables,y_variables):
+
+            graph = nx.DiGraph()
+
+            in_nodes = []
+            in_weights = []
+            for key, value in x_variables.items():
+                for module_name in value:
+                    in_nodes.append(key)
+                    in_weights.append(module_name.__class__.__name__)
+
+            out_nodes = []
+            out_weights = []
+            for key, module_name in y_variables.items():
+                out_nodes.append(key)
+                out_weights.append(module_name.__class__.__name__)
+
+            out_nodes.reverse()
+            out_weights.reverse()
+
+
+            nodes = in_nodes
+            for n in out_nodes:
+                nodes.append(n)
+
+            weights = in_weights
+            for w in out_weights:
+                weights.append(w)
+
+
+            print(nodes)
+            print(weights)
+
+            i = 0
+            edge_labels = dict()
+            for node, weight in zip(nodes,weights):
+
+                if i + 1 == len(nodes):
+                    break
+                node1 = node
+                node2 = nodes[i+1]
+                if node1 == node2:
+                    node2 = nodes[i+2]
+                    weight = weights[i+1]
+                graph.add_edge(node1, node2, labels = str(weight))
+                edge_labels[(node1, node2)] = weight
+                i += 1
+
+            # Draw the graph
+            plt.figure(figsize=(10, 10))
+            pos = nx.spring_layout(graph)  # set the positions of the nodes/edges/labels
+            nx.draw_networkx(graph, pos=pos, font_size = 6, node_shape = "s")  # draw everything but the edge labels
+            nx.draw_networkx_edge_labels(graph, pos=pos, edge_labels=edge_labels, font_size = 6)
+            plt.savefig("g1.pdf", format = "PDF")
+
+
+            # graph = nx.DiGraph()
+            # edges = []
+            #
+            # input_edges = []
+            # output_edges = []
+            #
+            # for x, y in zip(x_variables, y_variables):
+            #     input_edges.append(x)
+            #     output_edges.append(y)
+            #
+            #
+            # output_edges.reverse()
+            #
+            # for i, x in enumerate(input_edges):
+            #     if i+1 != len(input_edges):
+            #         edges.append((x,input_edges[i+1]))
+            #
+            # for i, x in enumerate(output_edges):
+            #     if i == 0:
+            #         edges.append((input_edges[-1], x))
+            #     if i+1 != len(output_edges):
+            #         edges.append((x,output_edges[i+1]))
+            #
+            # print(edges)
+            #
+            # graph.add_edges_from(edges)
+            # plt.tight_layout()
+            # nx.draw_networkx(graph, arrows=True)
+            # plt.savefig("g1.png", format="PNG")
+
+        plot_call_graph(self._variable_destination, self._variable_source)
+
+
 
 
 ######################################################################################################
