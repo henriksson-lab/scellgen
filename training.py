@@ -49,7 +49,7 @@ class DVAEtrainingBasic(DVAEtraining):
 
     def __init__(
             self,
-            lr=1e-2,
+            lr=1e-3,
             num_epoch: int = 100
     ):
         """

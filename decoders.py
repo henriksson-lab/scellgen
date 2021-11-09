@@ -85,9 +85,15 @@ class DVAEdecoderLinear(core.DVAEstep):
 
         # Add reconstruction error. Should it really be done here? todo
         gene_counts = env.get_variable_as_tensor("X")
-        predictionerror.DVAEpredictionErrorLogp().store_loss(
+        # predictionerror.DVAEpredictionErrorLogp().store_loss(
+        #     gene_counts,
+        #     count_distribution,
+        #     loss_recorder
+        # )
+
+        predictionerror.DVAEpredictionErrorL2().store_loss(
             gene_counts,
-            count_distribution,
+            px,
             loss_recorder
         )
 

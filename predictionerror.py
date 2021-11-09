@@ -28,6 +28,35 @@ class DVAEpredictionError(metaclass=abc.ABCMeta):
         pass
 
 
+
+######################################################################################################
+######################################################################################################
+######################################################################################################
+
+
+class DVAEpredictionErrorL2(DVAEpredictionError):
+
+    def __init__(self):
+        """
+        Returns loss based on cross entropy. The input is expected to be a tensor.
+        This loss can be used to predict classes, with values [0,1].
+        """
+        super().__init__()
+
+    def store_loss(
+            self,
+            input_x,
+            encoder_output,
+            loss_recorder: core.DVAEloss
+            ):
+        """
+        Compute the loss
+        """
+
+        loss = ((encoder_output - input_x)**2).mean()
+        loss_recorder.add_reconstruction_loss(loss)
+
+
 ######################################################################################################
 ######################################################################################################
 ######################################################################################################
