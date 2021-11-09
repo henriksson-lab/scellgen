@@ -148,45 +148,68 @@ class Environment:
         _output_samples  Caches samples from _output_values, if it is a Distribution
         """
         self._model = model
-        self._output_dims = dict()
-        self._output_values = dict()
-        self._output_samples = dict()
+        self._variable_dims = dict()
+        self._variable_value = dict()
+        self._variable_sample = dict()
+        self._variable_source = dict()
+        self._variable_destination = dict()
         self.debug = False
 
-    def define_variable(
+    def define_variable_output(
             self,
+            from_module,  # todo 666
             output_name: str,
             dim: int
     ):
         """
         Define an output from a step or loader
         """
-        if output_name in self._output_dims:
+        if output_name in self._variable_dims:
             raise "Tried to add output {} but it already existed from another step".format(output_name)
         else:
-            self._output_dims[output_name] = dim
+            self._variable_dims[output_name] = dim
+            self._variable_source[output_name] = from_module
 
-    def _get_variable_dims_of_one(self, one_variable):
+    def _define_variable_inputs_one(
+            self,
+            to_module,
+            one_variable
+    ):
         """
-        Compute the dimensions of one input
+        Define where one input/variable will go
+        Returns dimension of input
         """
         if isinstance(one_variable, str):
-            if one_variable in self._output_dims:
-                return self._output_dims[one_variable]
+            if one_variable in self._variable_dims:
+                if one_variable not in self._variable_destination:
+                    one_variable_input = []
+                    self._variable_destination[one_variable] = one_variable_input
+                else:
+                    one_variable_input = self._variable_destination[one_variable]
+                one_variable_input.append(to_module)
+                return self._variable_dims[one_variable]
             else:
                 raise Exception("not stored: {}".format(one_variable))
         else:
             raise Exception("not implemented yet, subsets of inputs")
 
-    def get_variable_dims(self, inputs):
+    def define_variable_inputs(
+            self,
+            to_module,
+            inputs
+    ):
         """
-        Compute the dimensions of the given input
+        Define where several inputs/variables will go.
+        Return total dimension of inputs
         """
+        total_dim = 0
         if inputs is None:
             return 0
         if not isinstance(inputs, list):
             inputs = [inputs]
-        return functools.reduce(operator.add, [self._get_variable_dims_of_one(i) for i in inputs], 0)
+        for i in inputs:
+            total_dim += self._define_variable_inputs_one(to_module, i)
+        return total_dim
 
     def get_variable_as_tensor(self, inputs):
         """
@@ -204,15 +227,15 @@ class Environment:
         # Gather all inputs
         all_values = []
         for one_input in inputs:
-            value = self._output_values[one_input]
+            value = self._variable_value[one_input]
             if isinstance(value, Distribution):
                 # Distributions must be sampled. Cache this value in case it is used multiple times
-                if one_input not in self._output_samples:
+                if one_input not in self._variable_sample:
                     one_sample = value.sample()
-                    self._output_samples[one_input] = one_sample
+                    self._variable_sample[one_input] = one_sample
                     return one_sample
                 else:
-                    return self._output_samples[one_input]
+                    return self._variable_sample[one_input]
             elif isinstance(value, torch.Tensor):
                 # Tensors can be added right away
                 all_values.append(value)
@@ -228,7 +251,7 @@ class Environment:
         """
         Store one value in the environment. Can be a Tensor or Distribution
         """
-        self._output_values[output] = out
+        self._variable_value[output] = out
         if self.debug:
             if hasattr(out, "shape"):
                 print("Storing variable {}, {}".format(output, out.shape))
@@ -236,13 +259,25 @@ class Environment:
                 print("Storing variable {}, {}".format(output, type(out)))
 
     def clear_variables(self):
-        self._output_values = {}
-        self._output_samples = {}
+        self._variable_value = {}
+        self._variable_sample = {}
 
     def print_variable_defs(self):
-        print("------------------------ sizes of variables ------------------")
-        print(self._output_dims)
-        print("--------------------------------------------------------------")
+        print("------------------------ sizes of variables ---------------------")
+        print(self._variable_dims)
+        print("---------------------- where variables are used as inputs -------")
+
+        def kn2(x):
+            return [(key, [c.__class__.__name__ for c in n]) for (key, n) in x.items()]
+
+        print(kn2(self._variable_destination))
+        print("---------------------- where variables are outputs --------------")
+
+        def kn(x):
+            return [(key, n.__class__.__name__) for (key, n) in x.items()]
+
+        print(kn(self._variable_source))
+        print("-----------------------------------------------------------------")
 
 
 ######################################################################################################

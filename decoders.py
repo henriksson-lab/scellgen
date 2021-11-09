@@ -56,14 +56,11 @@ class DVAEdecoderRnaseq(core.DVAEstep):
         self._input_sf = input_sf
 
         # Check input size and ensure it is there. Then define the output
-        self.n_input = mod.env.get_variable_dims(inputs)
-        self.n_covariates = mod.env.get_variable_dims(covariates)
+        self.n_input = mod.env.define_variable_inputs(self, inputs)
+        self.n_covariates = mod.env.define_variable_inputs(self, covariates)
 
         # self.dispersion = dispersion
         self.gene_likelihood = gene_likelihood
-
-        # todo need one rho for every gene!
-        # todo rho should be shape n_obs x n_gene
 
         self.px_decoder = encoders.FullyConnectedLayers(
             n_in=self.n_input,
@@ -133,4 +130,4 @@ class DVAEdecoderRnaseq(core.DVAEstep):
             self,
             env: core.Environment
     ):
-        env.define_variable(self._output, self._n_output)
+        env.define_variable_output(self, self._output, self._n_output)

@@ -35,8 +35,8 @@ class DVAEencoderFC(core.DVAEstep):
         self._n_output = n_output
 
         # Check input size and ensure it is there
-        n_input = mod.env.get_variable_dims(inputs)
-        n_covariates = mod.env.get_variable_dims(covariates)
+        n_input = mod.env.define_variable_inputs(self, inputs)
+        n_covariates = mod.env.define_variable_inputs(self, covariates)
 
         self.layer = FullyConnectedLayers(
             n_in=n_input,
@@ -66,7 +66,7 @@ class DVAEencoderFC(core.DVAEstep):
             self,
             env: core.Environment
     ):
-        env.define_variable(self._output, self._n_output)
+        env.define_variable_output(self, self._output, self._n_output)
 
 
 

@@ -34,11 +34,11 @@ class DVAElatentspacePeriodic(core.DVAEstep):
         self._output = output
 
         # Check input size and ensure it is there
-        n_input = mod.env.get_variable_dims(inputs)
+        n_input = mod.env.define_variable_inputs(self, inputs)
 
         # For latent spaces, the input and output coordinate dimensions are generally the same
         self._z_dim = n_input / 2
-        mod.env.define_variable(output, n_input)
+        mod.env.define_variable_output(output, n_input)
 
         if not (n_input % 2 == 0 and n_input > 0):
             raise Exception(
@@ -83,7 +83,7 @@ class DVAElatentspacePeriodic(core.DVAEstep):
         """
         # For latent spaces, the input and output coordinate dimensions are generally the same
         _z_dim = self.n_input
-        env.define_variable(self._output, _z_dim)  # todo here I think the same num dims?
+        env.define_variable_output(self, self._output, _z_dim)  # todo here I think the same num dims?
 
 
 ######################################################################################################
@@ -108,7 +108,7 @@ class DVAElatentspaceLinear(core.DVAEstep):
         self._output = output
 
         # Check input size and ensure it is there
-        self.n_input = mod.env.get_variable_dims(inputs)
+        self.n_input = mod.env.define_variable_inputs(self, inputs)
         if not (self.n_input % 2 == 0 and self.n_input > 0):
             raise Exception(
                 "Linear latent spaces need an even number of inputs, representing mean and average. Got {}".
@@ -149,7 +149,7 @@ class DVAElatentspaceLinear(core.DVAEstep):
         """
         # For normal latent spaces, there is one output coordinate given input mu, var
         _z_dim = int(self.n_input / 2)
-        env.define_variable(self._output, _z_dim)
+        env.define_variable_output(self, self._output, _z_dim)
 
 
 ######################################################################################################
@@ -176,8 +176,8 @@ class DVAElatentspaceSizeFactor(core.DVAEstep):
         self._output = output
 
         # Check input size and ensure it is there
-        self.n_input = mod.env.get_variable_dims(inputs)
-        self.n_input_sf = mod.env.get_variable_dims(sf_empirical)
+        self.n_input = mod.env.define_variable_inputs(self, inputs)
+        self.n_input_sf = mod.env.define_variable_inputs(self, sf_empirical)
 
         if self.n_input != 2:
             raise Exception(
@@ -226,4 +226,4 @@ class DVAElatentspaceSizeFactor(core.DVAEstep):
         Register the outputs and information about them
         """
         # For latent spaces, the input and output coordinate dimensions are generally the same
-        env.define_variable(self._output, 1)
+        env.define_variable_output(self, self._output, 1)

@@ -116,9 +116,9 @@ class DVAEloaderCounts(core.DVAEloader):
         Register the outputs and information about them
         """
         num_dim = getattr(self.model.adata, self._varname).shape[1]  # might be wrong todo
-        env.define_variable(self._output, num_dim)
+        env.define_variable_output(self, self._output, num_dim)
         if self._sf_output is not None:
-            env.define_variable(self._sf_output, 3)
+            env.define_variable_output(self, self._sf_output, 3)
 
 
 
@@ -190,4 +190,4 @@ class DVAEloaderObs(core.DVAEloader):
             self,
             env: core.Environment,
     ):
-        env.define_variable(self._output, self._num_dim_out)
+        env.define_variable_output(self, self._output, self._num_dim_out)
