@@ -21,7 +21,7 @@ import _dataloader
 # todo not general enough! should apply to whatever matrix is passed
 def calculate_library_size_priors(
         adata: anndata.AnnData,
-        # data,  # the matrix to work on
+        data,  # the matrix to work on
         batch=None
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
@@ -32,7 +32,6 @@ def calculate_library_size_priors(
     """
     # if np.any(data < 0):  # todo add this check again. CSR matrices cause problems
     #    raise Exception("Calculating library size: Matrix contains values < 0. This function is meant for raw counts")
-    data = adata.X
     sum_counts = data.sum(axis=1)
     library_log_obs = np.log(sum_counts+1)
 
