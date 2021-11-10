@@ -339,36 +339,6 @@ class Environment:
             plt.savefig("g1.pdf", format = "PDF")
 
 
-            # graph = nx.DiGraph()
-            # edges = []
-            #
-            # input_edges = []
-            # output_edges = []
-            #
-            # for x, y in zip(x_variables, y_variables):
-            #     input_edges.append(x)
-            #     output_edges.append(y)
-            #
-            #
-            # output_edges.reverse()
-            #
-            # for i, x in enumerate(input_edges):
-            #     if i+1 != len(input_edges):
-            #         edges.append((x,input_edges[i+1]))
-            #
-            # for i, x in enumerate(output_edges):
-            #     if i == 0:
-            #         edges.append((input_edges[-1], x))
-            #     if i+1 != len(output_edges):
-            #         edges.append((x,output_edges[i+1]))
-            #
-            # print(edges)
-            #
-            # graph.add_edges_from(edges)
-            # plt.tight_layout()
-            # nx.draw_networkx(graph, arrows=True)
-            # plt.savefig("g1.png", format="PNG")
-
         plot_call_graph(self._variable_destination, self._variable_source)
 
 
