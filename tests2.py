@@ -18,6 +18,8 @@ class TestStringMethods(unittest.TestCase):
     # ######## Test: simplest use case, RNAseq #########################################################################
     # ##################################################################################################################
 
+    CLUSTER FUCK IN THE CODE debo test git /(&/(&/(/(&()))))
+
     def test1(self):
         m = core.DVAEmodel(adata)
 
