@@ -11,6 +11,8 @@ from torch.distributions import Distribution
 from matplotlib import pyplot as plt
 
 import networkx as nx
+from networkx.drawing.nx_agraph import graphviz_layout
+
 ######################################################################################################
 ######################################################################################################
 ######################################################################################################
@@ -333,41 +335,12 @@ class Environment:
 
             # Draw the graph
             plt.figure(figsize=(10, 10))
-            pos = nx.spring_layout(graph)  # set the positions of the nodes/edges/labels
+            pos = graphviz_layout(graph, prog='dot')
+            # pos = nx.spring_layout(graph)  # set the positions of the nodes/edges/labels
             nx.draw_networkx(graph, pos=pos, font_size = 6, node_shape = "s")  # draw everything but the edge labels
             nx.draw_networkx_edge_labels(graph, pos=pos, edge_labels=edge_labels, font_size = 6)
             plt.savefig("g1.pdf", format = "PDF")
 
-
-            # graph = nx.DiGraph()
-            # edges = []
-            #
-            # input_edges = []
-            # output_edges = []
-            #
-            # for x, y in zip(x_variables, y_variables):
-            #     input_edges.append(x)
-            #     output_edges.append(y)
-            #
-            #
-            # output_edges.reverse()
-            #
-            # for i, x in enumerate(input_edges):
-            #     if i+1 != len(input_edges):
-            #         edges.append((x,input_edges[i+1]))
-            #
-            # for i, x in enumerate(output_edges):
-            #     if i == 0:
-            #         edges.append((input_edges[-1], x))
-            #     if i+1 != len(output_edges):
-            #         edges.append((x,output_edges[i+1]))
-            #
-            # print(edges)
-            #
-            # graph.add_edges_from(edges)
-            # plt.tight_layout()
-            # nx.draw_networkx(graph, arrows=True)
-            # plt.savefig("g1.png", format="PNG")
 
         plot_call_graph(self._variable_destination, self._variable_source)
 

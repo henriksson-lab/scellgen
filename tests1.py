@@ -38,9 +38,11 @@ class TestStringMethods(unittest.TestCase):
 
         m.env.print_variable_defs()
 
+
         trainer = training.DVAEtrainingBasic()
         trainer.train(m)
 
+        m.env.call_graph()
 
 if __name__ == '__main__':
     unittest.main()
