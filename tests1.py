@@ -13,6 +13,7 @@ import loader
 adata = sc.read("data/small_rna.h5ad")
 device = training.get_torch_device()
 
+
 class TestStringMethods(unittest.TestCase):
 
     # ##################################################################################################################
@@ -34,15 +35,20 @@ class TestStringMethods(unittest.TestCase):
         latentspace.DVAElatentspaceLinear(m, inputs="enc_rna", output="z")
 
         # decoder layer
-        decoders.DVAEdecoderRnaseq(m, inputs="z", input_sf="sf_rna", gene_likelihood="zinb")
+        decoders.DVAEdecoderRnaseq(
+            m,
+            inputs="z",
+            input_sf="sf_rna",
+            gene_likelihood="poisson"  # "zinb"
+        )
 
         m.env.print_variable_defs()
 
-
-        trainer = training.DVAEtrainingBasic()
+        trainer = training.DVAEtrainingBasic(lr=1e-3)
         trainer.train(m)
 
         m.env.call_graph()
+
 
 if __name__ == '__main__':
     unittest.main()

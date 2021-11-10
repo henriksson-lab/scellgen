@@ -134,7 +134,7 @@ class DVAEdecoderRnaseq(core.DVAEstep):
         """
         Generative function for RNAseq data according to the SCVI model
         """
-        super().__init__(mod)
+        super().__init__()
 
         # Generate all genes if not specified
         if gene_list is None:
@@ -206,18 +206,19 @@ class DVAEdecoderRnaseq(core.DVAEstep):
         # self.dispersion is a messy parameter. we could instead have a separate
         # cov variable that is fed into this neural network. then we would support
         # all cases in one mechanism
-        px_r = torch.exp(self.px_r_decoder(px))
+        px_r = torch.exp(self.px_r_decoder(px))   # or px_rate?
 
         # Store the fitted distribution of gene counts
+        if self._gene_likelihood == "zinb":
+            count_distribution = ZeroInflatedNegativeBinomial(mu=px_rate, theta=px_r, zi_logits=px_dropout)  # todo corrected wrong?
+        elif self._gene_likelihood == "nb":
+            count_distribution = NegativeBinomial(mu=px_rate, theta=px_r)
+        elif self._gene_likelihood == "poisson":
+            count_distribution = Poisson(px_r)
+        else:
+            raise "Unsupported gene likelihood {}".format(self._gene_likelihood)
+
         if do_sampling:
-            if self._gene_likelihood == "zinb":
-                count_distribution = ZeroInflatedNegativeBinomial(mu=px_rate, theta=px_r, zi_logits=px_dropout)
-            elif self._gene_likelihood == "nb":
-                count_distribution = NegativeBinomial(mu=px_rate, theta=px_r)
-            elif self._gene_likelihood == "poisson":
-                count_distribution = Poisson(px_rate)
-            else:
-                raise "Unsupported gene likelihood {}".format(self._gene_likelihood)
             env.store_variable(self._output, count_distribution)
 
             # Add reconstruction error. Should it really be done here? todo
@@ -228,7 +229,8 @@ class DVAEdecoderRnaseq(core.DVAEstep):
                 loss_recorder
             )
         else:
-            env.store_variable(self._output, px_rate)  #todo later: rho
+            env.store_variable(self._output, count_distribution.mean)  #todo later: rho
+#            env.store_variable(self._output, px_rate)  #todo later: rho
 
     def define_outputs(
             self,

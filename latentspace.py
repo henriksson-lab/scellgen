@@ -73,7 +73,7 @@ class DVAElatentspacePeriodic(core.DVAEstep):
             q_z = VonMisesFisher(z_mean, z_var)
             p_z = HypersphericalUniform(z_dim - 1)
 
-            loss_recorder.add_kl(torch.distributions.kl.kl_divergence(q_z, p_z).mean())
+            loss_recorder.add_kl(torch.distributions.kl.kl_divergence(q_z, p_z).sum(-1))  #todo was mean
 
             env.store_variable(self._output, q_z)
         else:
@@ -140,15 +140,18 @@ class DVAElatentspaceLinear(core.DVAEstep):
         z_input = env.get_variable_as_tensor(self._inputs)
         z_mean, z_var = torch.split(z_input, [z_dim, z_dim], dim=1)
 
-        # ensure positive variance. use exp instead?
-        z_var = torch.nn.functional.softplus(z_var)
+        if do_sampling:
+            # ensure positive variance. use exp instead?
+            z_var = torch.nn.functional.softplus(z_var)
 
-        # The distributions to compare
-        q_z = torch.distributions.normal.Normal(z_mean, z_var)
-        p_z = torch.distributions.normal.Normal(torch.zeros_like(z_mean), torch.ones_like(z_var))
+            # The distributions to compare
+            q_z = torch.distributions.normal.Normal(z_mean, z_var)
+            p_z = torch.distributions.normal.Normal(torch.zeros_like(z_mean), torch.ones_like(z_var))
 
-        loss_recorder.add_kl(torch.distributions.kl.kl_divergence(q_z, p_z).sum(-1).mean())
-        env.store_variable(self._output, q_z)
+            loss_recorder.add_kl(torch.distributions.kl.kl_divergence(q_z, p_z).sum(-1).mean())
+            env.store_variable(self._output, q_z)
+        else:
+            env.store_variable(self._output, z_mean)
 
     def define_outputs(
             self,
@@ -163,6 +166,9 @@ class DVAElatentspaceLinear(core.DVAEstep):
         env.define_variable_output(self, self._output, _z_dim)
 
     def get_latent_coordinates(self):
+        """
+        Return the latent space coordinates
+        """
         env = self.model.env
         z_dim = int(self.n_input / 2)
         z_input = env.get_variable_as_tensor(self._inputs)
@@ -186,7 +192,7 @@ class DVAElatentspaceSizeFactor(core.DVAEstep):
         """
         A size factor latent space, N^1
         """
-        super().__init__(mod)
+        super().__init__()
 
         self.sf_empirical = sf_empirical
         self._inputs = inputs
@@ -211,6 +217,7 @@ class DVAElatentspaceSizeFactor(core.DVAEstep):
 
     def forward(
             self,
+            mod: core.DVAEmodel,
             env: core.Environment,
             loss_recorder: core.DVAEloss,
             do_sampling: bool
@@ -241,6 +248,7 @@ class DVAElatentspaceSizeFactor(core.DVAEstep):
 
     def define_outputs(
             self,
+            mod: core.DVAEmodel,
             env: core.Environment,
     ):
         """
@@ -248,3 +256,13 @@ class DVAElatentspaceSizeFactor(core.DVAEstep):
         """
         # For latent spaces, the input and output coordinate dimensions are generally the same
         env.define_variable_output(self, self._output, 1)
+
+    def get_latent_coordinates(self):
+        """
+        Return the latent space coordinates
+        """
+        env = self.model.env
+        z_dim = int(self.n_input / 2)
+        z_input = env.get_variable_as_tensor(self._inputs)
+        z_mean, z_var = torch.split(z_input, [z_dim, z_dim], dim=1)
+        return z_mean

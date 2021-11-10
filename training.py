@@ -72,6 +72,7 @@ class DVAEtrainingBasic(DVAEtraining):
 
         for cur_epoch in range(0, self.num_epoch):
             total_epoch_loss = 0
+            all_losses = dict()
             for i, minibatch_data in enumerate(dl):
                 optimizer.zero_grad()
 
@@ -80,11 +81,14 @@ class DVAEtrainingBasic(DVAEtraining):
                 # print(total_loss)
                 total_epoch_loss += total_loss.cpu()
 
+                all_losses = loss_recorder.add_losses(all_losses)
+
                 if do_optimize:
                     # Calculate gradients and improve values accordingly
                     total_loss.backward()
                     optimizer.step()
-            print("training {} epoch {} loss {}".format(self.__class__.__name__, cur_epoch, total_epoch_loss))
+            print("training {} epoch {} loss {}, in parts {}".format(self.__class__.__name__,
+                                                                     cur_epoch, total_epoch_loss, str(all_losses)))
 
 
 ######################################################################################################

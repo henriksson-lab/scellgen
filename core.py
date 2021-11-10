@@ -59,6 +59,25 @@ class DVAEloss():
         """
         self.add("reconstruction", loss)
 
+    def __str__(self):
+        """
+        This method is used when the class is cast to a string
+        """
+        return str(self._losses)
+
+
+    def add_losses(
+            self,
+            loss_dict: Dict[str,float]
+    ) -> Dict[str,float]:
+        for (loss_name, one_loss) in self._losses.items():
+            one_loss = float(one_loss.cpu())
+            if loss_name in loss_dict:
+                loss_dict[loss_name] = loss_dict[loss_name] + one_loss
+            else:
+                loss_dict[loss_name] = one_loss
+        return loss_dict
+
 
 ######################################################################################################
 ######################################################################################################
