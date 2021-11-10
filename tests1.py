@@ -8,6 +8,8 @@ import latentspace
 import training
 import loader
 
+# later test joshua data at: /corgi/joshuac/FAP_CAF_6S_10x/HomSa.FAP.CAFs.Files.To.Play.With
+
 adata = sc.read("data/small_rna.h5ad")
 device = training.get_torch_device()
 

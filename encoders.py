@@ -95,6 +95,9 @@ class SequentialInject(nn.Module):
         self.n_covariates = n_covariates
         self.inject_covariates = inject_covariates
 
+        # Storing it in this format is required for torch .parameters()
+        self._modules_as_list = torch.nn.ModuleList(modules)
+
     def forward(self, x):
         x_main, x_cov = torch.split(x, [self.n_input, self.n_covariates], dim=1)
         for i, one_module in enumerate(self.modules):
