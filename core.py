@@ -11,6 +11,8 @@ from torch.distributions import Distribution
 from matplotlib import pyplot as plt
 
 import networkx as nx
+from networkx.drawing.nx_agraph import graphviz_layout
+
 ######################################################################################################
 ######################################################################################################
 ######################################################################################################
@@ -333,7 +335,8 @@ class Environment:
 
             # Draw the graph
             plt.figure(figsize=(10, 10))
-            pos = nx.spring_layout(graph)  # set the positions of the nodes/edges/labels
+            pos = graphviz_layout(graph, prog='dot')
+            # pos = nx.spring_layout(graph)  # set the positions of the nodes/edges/labels
             nx.draw_networkx(graph, pos=pos, font_size = 6, node_shape = "s")  # draw everything but the edge labels
             nx.draw_networkx_edge_labels(graph, pos=pos, edge_labels=edge_labels, font_size = 6)
             plt.savefig("g1.pdf", format = "PDF")
