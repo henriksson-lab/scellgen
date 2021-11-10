@@ -68,8 +68,7 @@ class DVAEloss():
 class DVAEstep(torch.nn.Module, metaclass=abc.ABCMeta):
 
     def __init__(
-            self,
-            model: 'DVAEmodel'
+            self
     ):
         """
         A step in which computation is performed or data loaded. It inherits nn.Module
@@ -78,13 +77,14 @@ class DVAEstep(torch.nn.Module, metaclass=abc.ABCMeta):
         https://discuss.pytorch.org/t/how-does-parameter-work/11960
         """
         super().__init__()
-        self.model = model
 
     @abc.abstractmethod
     def forward(
             self,
+            model: 'DVAEmodel',
             env: 'Environment',
-            loss_recorder: DVAEloss
+            loss_recorder: DVAEloss,
+            do_sampling: bool
     ):
         """
         Performs the computation
@@ -94,6 +94,7 @@ class DVAEstep(torch.nn.Module, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def define_outputs(
             self,
+            model: 'DVAEmodel',
             env: 'Environment',
     ):
         """
@@ -109,17 +110,16 @@ class DVAEstep(torch.nn.Module, metaclass=abc.ABCMeta):
 class DVAEloader(metaclass=abc.ABCMeta):
 
     def __init__(
-            self,
-            model: 'DVAEmodel'
+            self
     ):
         """
         Loads data from the adata, including preprocessing as needed
         """
-        self.model = model
 
     @abc.abstractmethod
     def define_outputs(
             self,
+            model: 'DVAEmodel',
             env: 'Environment',
     ):
         """
@@ -128,7 +128,10 @@ class DVAEloader(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def get_dataset(self) -> Dict[str, torch.utils.data.Dataset]:
+    def get_dataset(
+            self,
+            model: 'DVAEmodel'
+    ) -> Dict[str, torch.utils.data.Dataset]:
         """
         Return a dictionary of variable name -> Dataset
         """
@@ -245,7 +248,7 @@ class Environment:
                 # Tensors can be added right away
                 all_values.append(value)
             else:
-                raise Exception("Unknown type of variable {}".format(one_input))
+                raise Exception("Unknown type of variable {}, being {}".format(one_input, type(value)))
         return _util.cat_tensor_with_nones(all_values).type(torch.FloatTensor)  # todo nasty type cast. better way?
 
     def store_variable(
@@ -375,7 +378,7 @@ class DVAEmodel(torch.nn.Module):
         Add a computational step to perform
         """
         self._steps.append(step)
-        step.define_outputs(self.env)
+        step.define_outputs(self, self.env)
 
     def add_loader(
             self,
@@ -385,7 +388,7 @@ class DVAEmodel(torch.nn.Module):
         Add a data loader
         """
         self._loaders.append(loader)
-        loader.define_outputs(self.env)
+        loader.define_outputs(self, self.env)
 
     def get_latent_representation(self):
         """
@@ -395,7 +398,8 @@ class DVAEmodel(torch.nn.Module):
 
     def forward(
             self,
-            input_data: Dict[str, None]
+            input_data: Dict[str, None],
+            do_sampling: False
     ) -> DVAEloss:
         """
         Perform all the steps
@@ -410,8 +414,10 @@ class DVAEmodel(torch.nn.Module):
         # Run all the steps
         for step in self._steps:
             step.forward(
+                self,
                 self.env,
-                loss_recorder
+                loss_recorder,
+                do_sampling
             )
         return loss_recorder
 
@@ -421,7 +427,7 @@ class DVAEmodel(torch.nn.Module):
         """
         all_datasets = {}
         for one_loader in self._loaders:
-            these_datasets = one_loader.get_dataset()
+            these_datasets = one_loader.get_dataset(self)
             for (k, v) in these_datasets.items():
                 all_datasets[k] = v
                 # todo do a sanity check here

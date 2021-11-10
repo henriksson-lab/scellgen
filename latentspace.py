@@ -28,7 +28,7 @@ class DVAElatentspacePeriodic(core.DVAEstep):
 
         See https://github.com/nicola-decao/s-vae-pytorch/blob/master/examples/mnist.py
         """
-        super().__init__(mod)
+        super().__init__()
 
         self._inputs = inputs
         self._output = output
@@ -50,8 +50,10 @@ class DVAElatentspacePeriodic(core.DVAEstep):
 
     def forward(
             self,
+            mod: core.DVAEmodel,
             env: core.Environment,
-            loss_recorder: core.DVAEloss
+            loss_recorder: core.DVAEloss,
+            do_sampling: bool
     ):
         """
         Perform the reparameterization
@@ -61,21 +63,27 @@ class DVAElatentspacePeriodic(core.DVAEstep):
         z_input = env.get_variable_as_tensor(self._inputs)
         z_mean, z_var = torch.split(z_input, [z_dim, z_dim], dim=1)
 
-        # compute mean and concentration of the von Mises-Fisher
-        z_mean = z_mean / z_mean.norm(dim=-1, keepdim=True)
-        # the `+ 1` prevent collapsing behaviors
-        z_var = F.softplus(z_var) + 1
+        if do_sampling:
+            # compute mean and concentration of the von Mises-Fisher
+            z_mean = z_mean / z_mean.norm(dim=-1, keepdim=True)
+            # the `+ 1` prevent collapsing behaviors
+            z_var = F.softplus(z_var) + 1
 
-        # The distributions to compare
-        q_z = VonMisesFisher(z_mean, z_var)
-        p_z = HypersphericalUniform(z_dim - 1)
+            # The distributions to compare
+            q_z = VonMisesFisher(z_mean, z_var)
+            p_z = HypersphericalUniform(z_dim - 1)
 
-        loss_recorder.add_kl(torch.distributions.kl.kl_divergence(q_z, p_z).mean())
+            loss_recorder.add_kl(torch.distributions.kl.kl_divergence(q_z, p_z).mean())
 
-        env.store_variable(self._output, q_z)
+            env.store_variable(self._output, q_z)
+        else:
+            # todo not sure this is right. check
+            env.store_variable(self._output, z_mean)
+
 
     def define_outputs(
             self,
+            mod: core.DVAEmodel,
             env: core.Environment,
     ):
         """
@@ -102,7 +110,7 @@ class DVAElatentspaceLinear(core.DVAEstep):
         """
         A linear latent space, N^n - the regular kind
         """
-        super().__init__(mod)
+        super().__init__()
 
         self._inputs = inputs
         self._output = output
@@ -119,8 +127,10 @@ class DVAElatentspaceLinear(core.DVAEstep):
 
     def forward(
             self,
+            mod: core.DVAEmodel,
             env: core.Environment,
-            loss_recorder: core.DVAEloss
+            loss_recorder: core.DVAEloss,
+            do_sampling: bool
     ):
         """
         Perform the reparameterization
@@ -142,6 +152,7 @@ class DVAElatentspaceLinear(core.DVAEstep):
 
     def define_outputs(
             self,
+            mod: core.DVAEmodel,
             env: core.Environment,
     ):
         """
@@ -151,6 +162,12 @@ class DVAElatentspaceLinear(core.DVAEstep):
         _z_dim = int(self.n_input / 2)
         env.define_variable_output(self, self._output, _z_dim)
 
+    def get_latent_coordinates(self):
+        env = self.model.env
+        z_dim = int(self.n_input / 2)
+        z_input = env.get_variable_as_tensor(self._inputs)
+        z_mean, z_var = torch.split(z_input, [z_dim, z_dim], dim=1)
+        return z_mean
 
 ######################################################################################################
 ######################################################################################################
@@ -195,7 +212,8 @@ class DVAElatentspaceSizeFactor(core.DVAEstep):
     def forward(
             self,
             env: core.Environment,
-            loss_recorder: core.DVAEloss
+            loss_recorder: core.DVAEloss,
+            do_sampling: bool
     ):
         """
         Perform the reparameterization
@@ -203,20 +221,23 @@ class DVAElatentspaceSizeFactor(core.DVAEstep):
         # Split input vector into latent space parameters
         z_input = env.get_variable_as_tensor(self._inputs)
         z_mean, z_var = torch.split(z_input, [1, 1], dim=1)
-
         # ensure positive variance
         z_var = torch.exp(z_var)
 
-        # Obtain empirical distributions of sizes
-        sf_empirical = env.get_variable_as_tensor(self.sf_empirical)
-        sf_observed, sf_empirical_mean, sf_empirical_var = torch.split(sf_empirical, [1, 1, 1], dim=1)
+        if do_sampling:
+            # Obtain empirical distributions of sizes
+            sf_empirical = env.get_variable_as_tensor(self.sf_empirical)
+            sf_observed, sf_empirical_mean, sf_empirical_var = torch.split(sf_empirical, [1, 1, 1], dim=1)
 
-        # The distributions to compare
-        q_z = torch.distributions.normal.Normal(z_mean, z_var)
-        p_z = torch.distributions.normal.Normal(sf_empirical_mean, sf_empirical_var)
+            # The distributions to compare
+            q_z = torch.distributions.normal.Normal(z_mean, z_var)
+            p_z = torch.distributions.normal.Normal(sf_empirical_mean, sf_empirical_var)
 
-        loss_recorder.add_kl(torch.distributions.kl.kl_divergence(q_z, p_z).sum(-1).mean())
-        env.store_variable(self._output, q_z)
+            loss_recorder.add_kl(torch.distributions.kl.kl_divergence(q_z, p_z).sum(-1).mean())
+            env.store_variable(self._output, q_z)
+        else:
+            env.store_variable(self._output, z_mean)
+
 
     def define_outputs(
             self,

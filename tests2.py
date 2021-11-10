@@ -18,7 +18,6 @@ class TestStringMethods(unittest.TestCase):
     # ######## Test: simplest use case, RNAseq #########################################################################
     # ##################################################################################################################
 
-
     def test1(self):
         m = core.DVAEmodel(adata)
 
@@ -32,7 +31,7 @@ class TestStringMethods(unittest.TestCase):
         latentspace.DVAElatentspaceLinear(m, inputs="enc_rna", output="z")
 
         # decoder layer
-        decoders.DVAEdecoderLinear(m, inputs="z")
+        decoders.DVAEdecoderFC(m, inputs="z")
 
         m.env.print_variable_defs()
 
@@ -40,6 +39,7 @@ class TestStringMethods(unittest.TestCase):
         trainer.train(m)
 
         m.env.call_graph()
+
 
 if __name__ == '__main__':
     unittest.main()

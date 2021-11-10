@@ -80,28 +80,30 @@ class DVAEloaderCounts(core.DVAEloader):
         Empirical size factors will be computed if an output variable is specified, with batch-specific
         factors if an obs-column denoting batch is provided
         """
-        super().__init__(mod)
+        super().__init__()
         self._sf_batch_variable = sf_batch_variable
         self._sf_output = sf_output
         self._varname = adata_varname
         self._output = output
-        self.model = mod
 
         # Add this loader to the model
         mod.add_loader(self)
 
-    def get_dataset(self) -> Dict[str, torch.utils.data.Dataset]:
+    def get_dataset(
+            self,
+            mod: core.DVAEmodel
+    ) -> Dict[str, torch.utils.data.Dataset]:
         """
         Get the count matrix as a Dataset object
         """
-        n_obs = self.model.adata.shape[0]
+        n_obs = mod.adata.shape[0]
         datasets = {
-            self._output: _dataloader.AnnTorchDataset(n_obs, np.int64, getattr(self.model.adata, self._varname))
+            self._output: _dataloader.AnnTorchDataset(n_obs, np.int64, getattr(mod.adata, self._varname))
         }
         if self._sf_output is not None:
             library_log_obs, library_log_mean, library_log_var = calculate_library_size_priors(
-                self.model.adata,
-                getattr(self.model.adata, self._varname),
+                mod.adata,
+                getattr(mod.adata, self._varname),
                 self._sf_batch_variable)
             df = pd.DataFrame({
                 "obs": library_log_obs,
@@ -113,12 +115,13 @@ class DVAEloaderCounts(core.DVAEloader):
 
     def define_outputs(
             self,
+            mod: core.DVAEmodel,
             env: core.Environment,
     ):
         """
         Register the outputs and information about them
         """
-        num_dim = getattr(self.model.adata, self._varname).shape[1]  # might be wrong todo
+        num_dim = getattr(mod.adata, self._varname).shape[1]  # might be wrong todo
         env.define_variable_output(self, self._output, num_dim)
         if self._sf_output is not None:
             env.define_variable_output(self, self._sf_output, 3)
@@ -143,7 +146,7 @@ class DVAEloaderObs(core.DVAEloader):
         Loads data from the adata["obs"], including preprocessing as needed.
         This includes encoding of the categorial data especially
         """
-        super().__init__(mod)
+        super().__init__()
         self.list_cat = list_cat
         self.list_cont = list_cont
         self._varname = adata_varname
@@ -171,12 +174,15 @@ class DVAEloaderObs(core.DVAEloader):
         # Add this loader to the model
         mod.add_loader(self)
 
-    def get_dataset(self) -> Dict[str, torch.utils.data.Dataset]:
+    def get_dataset(
+            self,
+            mod: core.DVAEmodel
+    ) -> Dict[str, torch.utils.data.Dataset]:
         """
         Get the obs dataframe as Torch Datasets
         """
-        n_obs = self.model.adata.shape[0]
-        obs_df = self.model.adata[self._varname]
+        n_obs = mod.adata.shape[0]
+        obs_df = mod.adata[self._varname]
 
         list_x = []
         for key, mapping in self._value_mapping.items():
@@ -191,6 +197,7 @@ class DVAEloaderObs(core.DVAEloader):
 
     def define_outputs(
             self,
+            mod: core.DVAEmodel,
             env: core.Environment,
     ):
         env.define_variable_output(self, self._output, self._num_dim_out)

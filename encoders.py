@@ -28,7 +28,7 @@ class DVAEencoderFC(core.DVAEstep):
         """
         Fully connected neural network encoder
         """
-        super().__init__(mod)
+        super().__init__()
         self._inputs = inputs
         self._covariates = covariates
         self._output = output
@@ -51,8 +51,10 @@ class DVAEencoderFC(core.DVAEstep):
 
     def forward(
             self,
+            mod: core.DVAEmodel,
             env: core.Environment,
-            loss_recorder: core.DVAEloss
+            loss_recorder: core.DVAEloss,
+            do_sampling: bool
     ):
         """
         Perform the encoding
@@ -64,6 +66,7 @@ class DVAEencoderFC(core.DVAEstep):
 
     def define_outputs(
             self,
+            mod: core.DVAEmodel,
             env: core.Environment
     ):
         env.define_variable_output(self, self._output, self._n_output)

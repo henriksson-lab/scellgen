@@ -29,7 +29,7 @@ import core
 
 # todo a decoder into linear values. L2 loss
 
-class DVAEdecoderLinear(core.DVAEstep):
+class DVAEdecoderFC(core.DVAEstep):
     def __init__(
             self,
             mod: core.DVAEmodel,
@@ -42,7 +42,7 @@ class DVAEdecoderLinear(core.DVAEstep):
         """
         Generative function for various continuous data
         """
-        super().__init__(mod)
+        super().__init__()
 
         # Generate all genes if not specified
         if gene_list is None:
@@ -60,7 +60,7 @@ class DVAEdecoderLinear(core.DVAEstep):
         self._n_input = mod.env.define_variable_inputs(self, inputs)
         self._n_covariates = mod.env.define_variable_inputs(self, covariates)
 
-        self.px_decoder = encoders.FullyConnectedLayers(
+        self.layer = encoders.FullyConnectedLayers(
             n_in=self._n_input,
             n_hidden=self._n_hidden,
             n_out=self._n_output,
@@ -72,8 +72,10 @@ class DVAEdecoderLinear(core.DVAEstep):
 
     def forward(
             self,
+            mod: core.DVAEmodel,
             env: core.Environment,
-            loss_recorder: core.DVAEloss
+            loss_recorder: core.DVAEloss,
+            do_sampling: bool
     ):
         """
         Perform the decoding into distributions representing various continuous data
@@ -81,7 +83,7 @@ class DVAEdecoderLinear(core.DVAEstep):
         z = env.get_variable_as_tensor(self._inputs)
         cov = env.get_variable_as_tensor(self._covariates)
 
-        px = self.px_decoder.forward(_util.cat_tensor_with_nones([z, cov]))
+        px = self.layer.forward(_util.cat_tensor_with_nones([z, cov]))
 
         # Store the fitted distribution of gene counts
         count_distribution = Normal(px, torch.ones_like(px)*100)
@@ -104,6 +106,7 @@ class DVAEdecoderLinear(core.DVAEstep):
 
     def define_outputs(
             self,
+            mod: core.DVAEmodel,
             env: core.Environment
     ):
         env.define_variable_output(self, self._output, self._n_output)
@@ -176,8 +179,10 @@ class DVAEdecoderRnaseq(core.DVAEstep):
 
     def forward(
             self,
+            mod: core.DVAEmodel,
             env: core.Environment,
-            loss_recorder: core.DVAEloss
+            loss_recorder: core.DVAEloss,
+            do_sampling: bool
     ):
         """
         Perform the decoding into distributions representing RNAseq counts
@@ -187,8 +192,6 @@ class DVAEdecoderRnaseq(core.DVAEstep):
 
         # Take the library scale back to normal non-log scale
         library = torch.exp(env.get_variable_as_tensor(self._input_sf))
-
-        # print(_util.cat_tensor_with_nones([z, cov]))
 
         px = self.px_decoder.forward(_util.cat_tensor_with_nones([z, cov]))
 
@@ -206,26 +209,30 @@ class DVAEdecoderRnaseq(core.DVAEstep):
         px_r = torch.exp(self.px_r_decoder(px))
 
         # Store the fitted distribution of gene counts
-        if self._gene_likelihood == "zinb":
-            count_distribution = ZeroInflatedNegativeBinomial(mu=px_rate, theta=px_r, zi_logits=px_dropout)
-        elif self._gene_likelihood == "nb":
-            count_distribution = NegativeBinomial(mu=px_rate, theta=px_r)
-        elif self._gene_likelihood == "poisson":
-            count_distribution = Poisson(px_rate)
-        else:
-            raise "Unsupported gene likelihood {}".format(self._gene_likelihood)
-        env.store_variable(self._output, count_distribution)
+        if do_sampling:
+            if self._gene_likelihood == "zinb":
+                count_distribution = ZeroInflatedNegativeBinomial(mu=px_rate, theta=px_r, zi_logits=px_dropout)
+            elif self._gene_likelihood == "nb":
+                count_distribution = NegativeBinomial(mu=px_rate, theta=px_r)
+            elif self._gene_likelihood == "poisson":
+                count_distribution = Poisson(px_rate)
+            else:
+                raise "Unsupported gene likelihood {}".format(self._gene_likelihood)
+            env.store_variable(self._output, count_distribution)
 
-        # Add reconstruction error. Should it really be done here? todo
-        gene_counts = env.get_variable_as_tensor("X")
-        predictionerror.DVAEpredictionErrorLogp().store_loss(
-            gene_counts,
-            count_distribution,
-            loss_recorder
-        )
+            # Add reconstruction error. Should it really be done here? todo
+            gene_counts = env.get_variable_as_tensor("X")
+            predictionerror.DVAEpredictionErrorLogp().store_loss(
+                gene_counts,
+                count_distribution,
+                loss_recorder
+            )
+        else:
+            env.store_variable(self._output, px_rate)  #todo later: rho
 
     def define_outputs(
             self,
+            mod: core.DVAEmodel,
             env: core.Environment
     ):
         env.define_variable_output(self, self._output, self._n_output)
