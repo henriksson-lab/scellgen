@@ -306,10 +306,36 @@ class Environment:
         print(kn(self._variable_source))
         print("-----------------------------------------------------------------")
 
-    def call_graph(self):
-        def plot_call_graph(x_variables,y_variables):
+    def call_graph(self, show = True, saveas = None):
+        self.show = show
+        self.saveas = saveas
 
-            graph = nx.DiGraph()
+        def plot(generic_nodes, generic_edges):
+
+            generic_graph = nx.DiGraph()
+
+            i = 0
+            edge_labels = dict()
+            for node, weight in zip(generic_nodes, generic_edges):
+
+                if i + 1 == len(generic_nodes):
+                    break
+                node1 = node
+                node2 = generic_nodes[i + 1]
+                generic_graph.add_edge(node1, node2, labels=str(weight))
+                edge_labels[(node1, node2)] = weight
+                i += 1
+
+            # Draw the graph
+            # fig = plt.figure(figsize=(8,8))
+            pos = graphviz_layout(generic_graph, prog='dot')
+            nx.draw_networkx(generic_graph, pos=pos, font_size=6, node_shape="s", arrows = False)
+            # draw everything but the edge labels
+            nx.draw_networkx_edge_labels(generic_graph, pos=pos, edge_labels=edge_labels, font_size=6)
+            # return fig
+
+
+        def plot_call_graph(x_variables,y_variables):
 
             in_nodes = []
             in_weights = []
@@ -324,48 +350,29 @@ class Environment:
                 out_nodes.append(key)
                 out_weights.append(module_name.__class__.__name__)
 
-            out_nodes.reverse()
-            out_weights.reverse()
+            print("=======input nodes=======")
+            print(in_nodes)
+            print(in_weights)
+
+            print("=======output nodes=======")
+            print(out_nodes)
+            print(out_weights)
 
 
-            nodes = in_nodes
-            for n in out_nodes:
-                nodes.append(n)
+            print(self.show)
 
-            weights = in_weights
-            for w in out_weights:
-                weights.append(w)
+            if self.show:
+                plot(in_nodes, in_weights)
+                plot(out_nodes, out_weights)
+                plt.show()
+            else:
+                f, _ = plt.subplots(figsize=(8,8))
 
-
-            print(nodes)
-            print(weights)
-
-            i = 0
-            edge_labels = dict()
-            for node, weight in zip(nodes,weights):
-
-                if i + 1 == len(nodes):
-                    break
-                node1 = node
-                node2 = nodes[i+1]
-                if node1 == node2:
-                    node2 = nodes[i+2]
-                    weight = weights[i+1]
-                graph.add_edge(node1, node2, labels = str(weight))
-                edge_labels[(node1, node2)] = weight
-                i += 1
-
-            # Draw the graph
-            plt.figure(figsize=(10, 10))
-            pos = graphviz_layout(graph, prog='dot')
-            # pos = nx.spring_layout(graph)  # set the positions of the nodes/edges/labels
-            nx.draw_networkx(graph, pos=pos, font_size = 6, node_shape = "s")  # draw everything but the edge labels
-            nx.draw_networkx_edge_labels(graph, pos=pos, edge_labels=edge_labels, font_size = 6)
-            plt.savefig("g1.pdf", format = "PDF")
-
+                plot(in_nodes, in_weights)
+                plot(out_nodes, out_weights)
+                f.savefig(self.saveas, format="PDF")
 
         plot_call_graph(self._variable_destination, self._variable_source)
-
 
 
 
