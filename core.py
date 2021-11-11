@@ -327,12 +327,12 @@ class Environment:
                 i += 1
 
             # Draw the graph
-            # fig = plt.figure(figsize=(8,8))
+
             pos = graphviz_layout(generic_graph, prog='dot')
             nx.draw_networkx(generic_graph, pos=pos, font_size=6, node_shape="s", arrows = False)
             # draw everything but the edge labels
             nx.draw_networkx_edge_labels(generic_graph, pos=pos, edge_labels=edge_labels, font_size=6)
-            # return fig
+
 
 
         def plot_call_graph(x_variables,y_variables):
@@ -358,8 +358,6 @@ class Environment:
             print(out_nodes)
             print(out_weights)
 
-
-            print(self.show)
 
             if self.show:
                 plot(in_nodes, in_weights)
