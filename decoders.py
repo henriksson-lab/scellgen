@@ -238,3 +238,13 @@ class DVAEdecoderRnaseq(core.DVAEstep):
             env: core.Environment
     ):
         env.define_variable_output(self, self._output, self._n_output)
+
+
+    def get_normalized_expression(self):
+        # this is rho
+        #https://github.com/YosefLab/scvi-tools/blob/85fb04a30ca1a9162cd25e57673b9af81a03ca70/scvi/model/base/_rnamixin.py#L41
+        pass
+
+    def differential_expression(self):
+        # https://github.com/YosefLab/scvi-tools/blob/85fb04a30ca1a9162cd25e57673b9af81a03ca70/scvi/model/base/_rnamixin.py#L168
+        pass
