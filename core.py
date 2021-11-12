@@ -314,17 +314,13 @@ class Environment:
 
             generic_graph = nx.DiGraph()
 
-            i = 0
             edge_labels = dict()
-            for node, weight in zip(generic_nodes, generic_edges):
-
-                if i + 1 == len(generic_nodes):
-                    break
-                node1 = node
-                node2 = generic_nodes[i + 1]
-                generic_graph.add_edge(node1, node2, labels=str(weight))
-                edge_labels[(node1, node2)] = weight
-                i += 1
+            for i in range(len(generic_nodes)-1):
+                node1 = generic_nodes[i]
+                node2 = generic_nodes[i+1]
+                edge_name = generic_edges[i]
+                generic_graph.add_edge(node1, node2, labels=str(edge_name))
+                edge_labels[(node1, node2)] = edge_name
 
             # Draw the graph
 
@@ -335,42 +331,42 @@ class Environment:
 
 
 
-        def plot_call_graph(x_variables,y_variables):
+        variable_destination = self._variable_destination
+        variable_source = self._variable_source
 
-            in_nodes = []
-            in_weights = []
-            for key, value in x_variables.items():
-                for module_name in value:
-                    in_nodes.append(key)
-                    in_weights.append(module_name.__class__.__name__)
+        in_nodes = []
+        in_weights = []
+        for key, value in variable_destination.items():
+            for module_name in value:
+                in_nodes.append(key)
+                in_weights.append(module_name.__class__.__name__)
 
-            out_nodes = []
-            out_weights = []
-            for key, module_name in y_variables.items():
-                out_nodes.append(key)
-                out_weights.append(module_name.__class__.__name__)
+        out_nodes = []
+        out_weights = []
+        for key, module_name in variable_source.items():
+            out_nodes.append(key)
+            out_weights.append(module_name.__class__.__name__)
 
-            print("=======input nodes=======")
-            print(in_nodes)
-            print(in_weights)
+        print("=======input nodes=======")
+        print(in_nodes)
+        print(in_weights)
 
-            print("=======output nodes=======")
-            print(out_nodes)
-            print(out_weights)
+        print("=======output nodes=======")
+        print(out_nodes)
+        print(out_weights)
 
 
-            if self.show:
-                plot(in_nodes, in_weights)
-                plot(out_nodes, out_weights)
-                plt.show()
-            else:
-                f, _ = plt.subplots(figsize=(8,8))
+        if self.show:
+            plot(in_nodes, in_weights)
+            plot(out_nodes, out_weights)
+            plt.show()
+        else:
+            f, _ = plt.subplots(figsize=(8,8))
 
-                plot(in_nodes, in_weights)
-                plot(out_nodes, out_weights)
-                f.savefig(self.saveas, format="PDF")
+            plot(in_nodes, in_weights)
+            plot(out_nodes, out_weights)
+            f.savefig(self.saveas, format="PDF")
 
-        plot_call_graph(self._variable_destination, self._variable_source)
 
 
 
