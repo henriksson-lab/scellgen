@@ -7,6 +7,7 @@ import anndata
 
 import torch
 from torch.distributions import Distribution
+import pandas as pd
 
 from matplotlib import pyplot as plt
 
@@ -310,62 +311,37 @@ class Environment:
         self.show = show
         self.saveas = saveas
 
-        def plot(generic_nodes, generic_edges):
+        x = self._variable_destination
+        input_dictionary = {key: [c.__class__.__name__ for c in n] for (key, n) in x.items()}
 
-            generic_graph = nx.DiGraph()
+        input_nodes = [v for v in input_dictionary.keys()]
+        input_edges = [e for v in input_dictionary.values() for e in v]
+        input_graph = {(n, input_nodes[i + 1]) for i, n in enumerate(input_nodes[:-1])}
+        input_edge_labels = {c: e for e, c in zip(input_edges, input_graph)}
 
-            edge_labels = dict()
-            for i in range(len(generic_nodes)-1):
-                node1 = generic_nodes[i]
-                node2 = generic_nodes[i+1]
-                edge_name = generic_edges[i]
-                generic_graph.add_edge(node1, node2, labels=str(edge_name))
-                edge_labels[(node1, node2)] = edge_name
+        y = self._variable_source
+        output_dictionary = {key: [n.__class__.__name__] for key, n in y.items()}
+        output_nodes = [v for v in output_dictionary.keys()]
+        output_edges = [v for v in output_dictionary.values()]
 
-            # Draw the graph
-
-            pos = graphviz_layout(generic_graph, prog='dot')
-            nx.draw_networkx(generic_graph, pos=pos, font_size=6, node_shape="s", arrows = False)
-            # draw everything but the edge labels
-            nx.draw_networkx_edge_labels(generic_graph, pos=pos, edge_labels=edge_labels, font_size=6)
+        output_graph = {(n, output_nodes[i + 1]) for i, n in enumerate(output_nodes[:-1])}
+        output_edge_labels = {c: e for e, c in zip(output_edges, output_graph)}
 
 
 
-        variable_destination = self._variable_destination
-        variable_source = self._variable_source
+        edge_labels = input_edge_labels
+        edge_labels.update(output_edge_labels)
 
-        in_nodes = []
-        in_weights = []
-        for key, value in variable_destination.items():
-            for module_name in value:
-                in_nodes.append(key)
-                in_weights.append(module_name.__class__.__name__)
+        CALL_GRAPH = pd.DataFrame({})
 
-        out_nodes = []
-        out_weights = []
-        for key, module_name in variable_source.items():
-            out_nodes.append(key)
-            out_weights.append(module_name.__class__.__name__)
+        CALL_GRAPH["from"] = [i[0] for i in edge_labels.keys()]
+        CALL_GRAPH["to"] = [i[1] for i in edge_labels.keys()]
+        CALL_GRAPH["edge_label"] = [i for i in edge_labels.values()]
+        print("------------------------ connections ---------------------")
+        print("    ")
+        print(CALL_GRAPH.loc[:,["from", "to", "edge_label"]])
 
-        print("=======input nodes=======")
-        print(in_nodes)
-        print(in_weights)
-
-        print("=======output nodes=======")
-        print(out_nodes)
-        print(out_weights)
-
-
-        if self.show:
-            plot(in_nodes, in_weights)
-            plot(out_nodes, out_weights)
-            plt.show()
-        else:
-            f, _ = plt.subplots(figsize=(8,8))
-
-            plot(in_nodes, in_weights)
-            plot(out_nodes, out_weights)
-            f.savefig(self.saveas, format="PDF")
+      
 
 
 
