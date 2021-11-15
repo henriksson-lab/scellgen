@@ -69,6 +69,10 @@ class DVAEtrainingBasic(DVAEtraining):
         dl = _dataloader.BatchSamplerLoader(dataset)
 
         print("====== num params {}".format(count_parameters(mod)))
+        
+        epoch_losses = []
+        total_epoch_losses = []
+        
 
         for cur_epoch in range(0, self.num_epoch):
             total_epoch_loss = 0
@@ -89,6 +93,11 @@ class DVAEtrainingBasic(DVAEtraining):
                     optimizer.step()
             print("training {} epoch {} loss {}, in parts {}".format(self.__class__.__name__,
                                                                      cur_epoch, total_epoch_loss, str(all_losses)))
+            epoch_losses.append(total_epoch_loss)
+            total_epoch_losses.append(all_losses)
+        return epoch_losses, total_epoch_losses
+        
+            
 
 
 ######################################################################################################

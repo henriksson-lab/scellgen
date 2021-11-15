@@ -307,10 +307,10 @@ class Environment:
         print(kn(self._variable_source))
         print("-----------------------------------------------------------------")
 
-    def call_graph(self, show = True, saveas = None):
+    def call_graph(self, show = True, figfile = None):
         self.show = show
-        self.saveas = saveas
-
+        self.figfile = figfile
+            
         x = self._variable_destination
         input_dictionary = {key: [c.__class__.__name__ for c in n] for (key, n) in x.items()}
 
@@ -318,6 +318,9 @@ class Environment:
         input_edges = [e for v in input_dictionary.values() for e in v]
         input_graph = {(n, input_nodes[i + 1]) for i, n in enumerate(input_nodes[:-1])}
         input_edge_labels = {c: e for e, c in zip(input_edges, input_graph)}
+
+        G_IN = nx.DiGraph()
+        G_IN.add_edges_from(input_graph)
 
         y = self._variable_source
         output_dictionary = {key: [n.__class__.__name__] for key, n in y.items()}
@@ -327,11 +330,29 @@ class Environment:
         output_graph = {(n, output_nodes[i + 1]) for i, n in enumerate(output_nodes[:-1])}
         output_edge_labels = {c: e for e, c in zip(output_edges, output_graph)}
 
+        G_OUT = nx.DiGraph()
+        G_OUT.add_edges_from(output_graph)
 
-
+        
         edge_labels = input_edge_labels
         edge_labels.update(output_edge_labels)
-
+        
+        G = nx.compose(G_IN,G_OUT)
+        
+        plt.figure(figsize=(16,18))
+        pos = graphviz_layout(G, prog='dot')
+        
+        if self.show:
+            nx.draw_networkx(G, pos=pos,  node_shape="s", node_size = 10000, font_size = 20)
+            nx.draw_networkx_edge_labels(G, pos=pos, edge_labels = edge_labels)
+            plt.show()
+        else:
+            nx.draw_networkx(G, pos=pos,  node_shape="s", node_size = 10000, font_size = 20)
+            nx.draw_networkx_edge_labels(G, pos=pos, edge_labels = edge_labels)
+            plt.savefig(self.figfile, format = "PDF")
+            plt.clf()
+            
+            
         CALL_GRAPH = pd.DataFrame({})
 
         CALL_GRAPH["from"] = [i[0] for i in edge_labels.keys()]
@@ -341,7 +362,7 @@ class Environment:
         print("    ")
         print(CALL_GRAPH.loc[:,["from", "to", "edge_label"]])
 
-      
+        return CALL_GRAPH
 
 
 
