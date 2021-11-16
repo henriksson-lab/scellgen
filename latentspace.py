@@ -32,6 +32,7 @@ class DVAElatentspacePeriodic(core.DVAEstep):
 
         self._inputs = inputs
         self._output = output
+        self.model = mod
 
         # Check input size and ensure it is there
         n_input = mod.env.define_variable_inputs(self, inputs)
@@ -70,7 +71,7 @@ class DVAElatentspacePeriodic(core.DVAEstep):
             z_var = F.softplus(z_var) + 1
 
             # The distributions to compare
-            q_z = VonMisesFisher(z_mean, z_var)
+            q_z = VonMisesFisher(z_mean, z_var.sqrt())
             p_z = HypersphericalUniform(z_dim - 1)
 
             loss_recorder.add_kl(torch.distributions.kl.kl_divergence(q_z, p_z).sum(-1))  #todo was mean
@@ -114,6 +115,7 @@ class DVAElatentspaceLinear(core.DVAEstep):
 
         self._inputs = inputs
         self._output = output
+        self.model = mod
 
         # Check input size and ensure it is there
         self.n_input = mod.env.define_variable_inputs(self, inputs)
@@ -142,11 +144,11 @@ class DVAElatentspaceLinear(core.DVAEstep):
 
         if do_sampling:
             # ensure positive variance. use exp instead?
-            z_var = torch.nn.functional.softplus(z_var)
+            z_var = torch.exp(z_var)
 
             # The distributions to compare
-            q_z = torch.distributions.normal.Normal(z_mean, z_var)
-            p_z = torch.distributions.normal.Normal(torch.zeros_like(z_mean), torch.ones_like(z_var))
+            q_z = torch.distributions.normal.Normal(z_mean, z_var.sqrt())
+            p_z = torch.distributions.normal.Normal(torch.zeros_like(z_mean), torch.ones_like(z_var).sqrt())
 
             loss_recorder.add_kl(torch.distributions.kl.kl_divergence(q_z, p_z).sum(-1).mean())
             env.store_variable(self._output, q_z)
@@ -197,6 +199,7 @@ class DVAElatentspaceSizeFactor(core.DVAEstep):
         self.sf_empirical = sf_empirical
         self._inputs = inputs
         self._output = output
+        self.model = mod
 
         # Check input size and ensure it is there
         self.n_input = mod.env.define_variable_inputs(self, inputs)
@@ -237,8 +240,8 @@ class DVAElatentspaceSizeFactor(core.DVAEstep):
             sf_observed, sf_empirical_mean, sf_empirical_var = torch.split(sf_empirical, [1, 1, 1], dim=1)
 
             # The distributions to compare
-            q_z = torch.distributions.normal.Normal(z_mean, z_var)
-            p_z = torch.distributions.normal.Normal(sf_empirical_mean, sf_empirical_var)
+            q_z = torch.distributions.normal.Normal(z_mean, z_var.sqrt())
+            p_z = torch.distributions.normal.Normal(sf_empirical_mean, sf_empirical_var.sqrt())
 
             loss_recorder.add_kl(torch.distributions.kl.kl_divergence(q_z, p_z).sum(-1).mean())
             env.store_variable(self._output, q_z)

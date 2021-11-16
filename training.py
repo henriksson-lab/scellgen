@@ -79,7 +79,7 @@ class DVAEtrainingBasic(DVAEtraining):
             all_losses = dict()
             for i, minibatch_data in enumerate(dl):
                 optimizer.zero_grad()
-
+                
                 loss_recorder = mod.forward(minibatch_data, do_sampling=True)
                 total_loss = loss_recorder.get_total_loss()
                 # print(total_loss)

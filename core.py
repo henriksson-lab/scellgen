@@ -360,6 +360,7 @@ class Environment:
         CALL_GRAPH["edge_label"] = [i for i in edge_labels.values()]
         print("------------------------ connections ---------------------")
         print("    ")
+        CALL_GRAPH.sort_values(by = ["from"], inplace = True)
         print(CALL_GRAPH.loc[:,["from", "to", "edge_label"]])
 
         return CALL_GRAPH

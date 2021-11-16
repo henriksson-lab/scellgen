@@ -90,7 +90,7 @@ class DVAEdecoderFC(core.DVAEstep):
         env.store_variable(self._output, count_distribution)
 
         # Add reconstruction error. Should it really be done here? todo
-        gene_counts = env.get_variable_as_tensor("X")
+        gene_counts = env.get_variable_as_tensor(self._output)
         # predictionerror.DVAEpredictionErrorLogp().store_loss(
         #     gene_counts,
         #     count_distribution,
@@ -200,6 +200,9 @@ class DVAEdecoderRnaseq(core.DVAEstep):
         # px is rho in https://www.nature.com/articles/s41592-018-0229-2
         rho = self.rho_decoder(px)
         px_rate = library * rho
+        if torch.isnan(torch.sum(px_rate)):
+            print(px_rate)
+        
         px_dropout = self.px_dropout_decoder(px)  # f_h in the SCVI paper
 
         ############################
@@ -214,7 +217,7 @@ class DVAEdecoderRnaseq(core.DVAEstep):
         elif self._gene_likelihood == "nb":
             count_distribution = NegativeBinomial(mu=px_rate, theta=px_r)
         elif self._gene_likelihood == "poisson":
-            count_distribution = Poisson(px_r)
+            count_distribution = Poisson(px_rate)
         else:
             raise "Unsupported gene likelihood {}".format(self._gene_likelihood)
 
@@ -222,7 +225,7 @@ class DVAEdecoderRnaseq(core.DVAEstep):
             env.store_variable(self._output, count_distribution)
 
             # Add reconstruction error. Should it really be done here? todo
-            gene_counts = env.get_variable_as_tensor("X")
+            gene_counts = env.get_variable_as_tensor(self._output)
             predictionerror.DVAEpredictionErrorLogp().store_loss(
                 gene_counts,
                 count_distribution,
